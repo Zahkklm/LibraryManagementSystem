@@ -1,0 +1,22 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: auth-service
+  datasource:
+    url: jdbc:postgresql://postgres:5432/library?currentSchema=auth
+    username: auth_service
+    password: authpass
+  cloud:
+    config:
+      uri: http://config-server:8888
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://discovery-service:8761/eureka
+
+jwt:
+  secret: ${JWT_SECRET:defaultSecretKey}
+  expiration: ${JWT_EXPIRATION:86400000}  # 24h

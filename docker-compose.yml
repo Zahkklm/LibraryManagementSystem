@@ -95,7 +95,10 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/library?currentSchema=auth
       - SPRING_DATASOURCE_USERNAME=auth_service
       - SPRING_DATASOURCE_PASSWORD=authpass
+      - SPRING_PROFILES_ACTIVE=docker
       - EUREKA_URL=http://discovery-service:8761/eureka
+      - JWT_SECRET=Z9#vq9LpX4R!TgWbZn2d3K7Mw$BkS8yHcNfUjQmYtP5s6vDxGJhEeA1rC4lOz0Ii
+      - JWT_EXPIRATION=86400000
     depends_on:
       - postgres
       - discovery-service
