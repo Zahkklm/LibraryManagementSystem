@@ -1,0 +1,132 @@
+services:
+  # INFRASTRUCTURE
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: library
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - 5432:5432
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.3.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  kafka:
+    image: confluentinc/cp-kafka:7.3.0
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    ports:
+      - 9092:9092
+
+  # CORE SERVICES  
+  discovery-service:
+    build: discovery-service
+    ports:
+      - 8761:8761
+    environment:
+      - SPRING_PROFILES_ACTIVE=docker
+
+  config-server:
+    build: config-server
+    ports:
+      - 8888:8888
+    depends_on:
+      - discovery-service
+
+  api-gateway:
+    build: api-gateway
+    ports:
+      - 8080:8080
+    environment:
+      - EUREKA_URL=http://discovery-service:8761/eureka
+    depends_on:
+      - discovery-service
+
+  book-service:
+    build: book-service
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/library?currentSchema=books
+      - SPRING_DATASOURCE_USERNAME=book_service
+      - SPRING_DATASOURCE_PASSWORD=bookpass
+      - EUREKA_URL=http://discovery-service:8761/eureka
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    depends_on:
+      - postgres
+      - discovery-service
+      - kafka
+
+  user-service:
+    build: user-service
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/library?currentSchema=users
+      - SPRING_DATASOURCE_USERNAME=user_service
+      - SPRING_DATASOURCE_PASSWORD=userpass
+      - EUREKA_URL=http://discovery-service:8761/eureka
+    depends_on:
+      - postgres
+      - discovery-service
+
+  borrow-service:
+    build: borrow-service
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/library?currentSchema=borrows
+      - SPRING_DATASOURCE_USERNAME=borrow_service
+      - SPRING_DATASOURCE_PASSWORD=borrowpass
+      - EUREKA_URL=http://discovery-service:8761/eureka
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    depends_on:
+      - postgres
+      - discovery-service
+      - kafka
+
+  auth-service:
+    build: auth-service
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/library?currentSchema=auth
+      - SPRING_DATASOURCE_USERNAME=auth_service
+      - SPRING_DATASOURCE_PASSWORD=authpass
+      - EUREKA_URL=http://discovery-service:8761/eureka
+    depends_on:
+      - postgres
+      - discovery-service
+
+  saga-service:
+    build: saga-service
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/library?currentSchema=saga
+      - SPRING_DATASOURCE_USERNAME=saga_service
+      - SPRING_DATASOURCE_PASSWORD=sagapass
+      - EUREKA_URL=http://discovery-service:8761/eureka
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    depends_on:
+      - postgres
+      - discovery-service
+      - kafka
+
+  notification-service:
+    build: notification-service
+    environment:
+      - EUREKA_URL=http://discovery-service:8761/eureka
+      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    depends_on:
+      - discovery-service
+      - kafka
+
+volumes:
+  postgres_data:
+  zookeeper_data:
+  kafka_data:
+
+networks:
+  default:
+    driver: bridge
