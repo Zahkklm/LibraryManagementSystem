@@ -1,0 +1,10 @@
+testcontainers:
+  reuse:
+    enable: true
+  docker:
+    host: tcp://localhost:2375
+
+spring:
+  test:
+    database:
+      replace: none
