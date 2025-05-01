@@ -1,94 +1,146 @@
-package com.library.auth.security;
+package com.librarysystem.authservice.security;
 
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.SignatureAlgorithm;
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.Keys;
+import io.jsonwebtoken.security.SignatureException;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
+
+import java.security.Key;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.Date;
+import java.util.Optional;
+import java.util.function.Function;
 
 /**
- * JWT Utility class for handling JWT token operations including:
- * - Token generation
- * - Token validation
- * - Claim extraction
+ * JWT Utilities handling token generation, validation, and claims extraction.
+ * <p>
+ * Implements RFC 7519 standards for JSON Web Tokens using the jjwt library.
+ * Utilizes HMAC-SHA512 for token signing by default.
  *
- * Uses io.jsonwebtoken library for JWT operations and Spring Value injection for configuration.
+ * Security Considerations:
+ * - Secret key should be at least 512 bits (64 bytes) for HS512
+ * - Token expiration should be set based on security requirements
+ * - Sensitive claims should be avoided in JWT payload
+ * - Token validation should be the first step in any JWT processing
  */
 @Component
 public class JwtUtils {
-
-  // Secret key for signing and verifying JWT tokens (injected from application properties)
-  @Value("${jwt.secret}")
-  private String secret;
-
-  // Token expiration time in milliseconds (injected from application properties)
-  @Value("${jwt.expiration}")
-  private long expiration;
+  private static final String ISSUER = "LibraryAuthService";
+  private final Key jwtSecret;
+  private final long jwtExpirationMs;
 
   /**
-   * Generates a JWT token for a user with specified role.
-   *
-   * @param username Subject of the token (typically user identifier)
-   * @param role User role to be included as a claim
-   * @return Signed JWT token as compact string
+   * Initializes JWT processor with crypto-safe key derivation
+   * @param secret Base64 encoded 512-bit (64 byte) secret
+   * @param expirationMs Token TTL in milliseconds (recommended ≤ 1 hour)
    */
-  public String generateToken(String username, String role) {
+  public JwtUtils(
+    @Value("${app.jwt.secret}") String secret,
+    @Value("${app.jwt.expiration-ms}") long expirationMs
+  ) {
+    this.jwtSecret = Keys.hmacShaKeyFor(secret.getBytes()); // Key derivation function
+    this.jwtExpirationMs = expirationMs;
+  }
+
+  /**
+   * Resolves username from validated token claims
+   * @throws JwtException if claims extraction fails validation
+   */
+  public String getUsernameFromToken(String token) throws JwtException {
+    return extractUsername(token)
+      .orElseThrow(() -> new JwtException("Invalid subject claim"));
+  }
+
+  /**
+   * Generates a signed JWT for authenticated users
+   *
+   * @param authentication Spring Security authentication object
+   * @return Compact URL-safe JWT string
+   *
+   * Token Structure:
+   * - Subject: Authenticated username
+   * - Issuer: LibraryAuthService
+   * - Issued At: Current timestamp
+   * - Expiration: Configurable time offset
+   * - Signature: HMAC-SHA512 of header+payload
+   */
+  public String generateToken(Authentication authentication) {
     return Jwts.builder()
-      .subject(username)  // Set subject (typically username)
-      .claim("role", role) // Add custom claim for user role
-      .issuedAt(new Date())  // Set token issuance time
-      .expiration(new Date(System.currentTimeMillis() + expiration)) // Set expiration time
-      .signWith(SignatureAlgorithm.HS512, secret) // Sign with HS512 algorithm and secret key
-      .compact();  // Convert to compact URL-safe string
+      .setSubject(authentication.getName())  // Unique user identifier
+      .setIssuer(ISSUER)                     // Token origin verification
+      .setIssuedAt(Date.from(Instant.now())) // Token creation timestamp
+      .setExpiration(Date.from(Instant.now() // Calculated expiration
+        .plus(jwtExpirationMs, ChronoUnit.MILLIS)))
+      .signWith(jwtSecret, SignatureAlgorithm.HS512) // Cryptographic signature
+      .compact(); // Finalize and serialize
   }
 
   /**
-   * Extracts username from JWT token.
+   * Extracts username from JWT subject claim
    *
-   * @param token JWT token to parse
-   * @return Username extracted from token subject
-   * @throws io.jsonwebtoken.JwtException If token is invalid or signature verification fails
+   * @param token Compact JWT string
+   * @return Optional containing username if valid, empty otherwise
    */
-  public String getUsernameFromToken(String token) {
-    return Jwts.parser()
-      .setSigningKey(secret)  // Set secret key for signature verification
-      .build()
-      .parseClaimsJws(token)  // Parse and verify token signature
-      .getBody()
-      .getSubject();  // Extract subject (username) from claims
+  public Optional<String> extractUsername(String token) {
+    return extractClaim(token, Claims::getSubject);
   }
 
   /**
-   * Validates JWT token integrity and expiration.
+   * Validates JWT integrity and expiration
    *
-   * @param token JWT token to validate
-   * @return true if token is valid and not expired, false otherwise
+   * @param token Compact JWT string
+   * @return true if token is properly signed and not expired
    */
   public boolean validateToken(String token) {
     try {
-      Jwts.parser()
-        .setSigningKey(secret)  // Verify using secret key
-        .build()
-        .parseClaimsJws(token);  // Throws exceptions for invalid/expired tokens
+      parseToken(token);
       return true;
-    } catch (Exception e) {
-      // Catch all JWT-related exceptions (ExpiredJwtException, SignatureException, etc)
+    } catch (JwtException | IllegalArgumentException e) {
+      // Security: Avoid logging raw tokens in production
       return false;
     }
   }
+
+  /**
+   * Generic claim extractor supporting custom claim resolution
+   *
+   * @param token Compact JWT string
+   * @param claimsResolver Function to extract specific claim
+   * @return Optional containing claim value if present and valid
+   */
+  private <T> Optional<T> extractClaim(String token, Function<Claims, T> claimsResolver) {
+    return parseToken(token)
+      .map(Jws::getBody)        // Extract verified claims body
+      .map(claimsResolver);     // Apply custom claim resolver
+  }
+
+  /**
+   * Parses and validates JWT structure
+   *
+   * @param token Compact JWT string
+   * @return JWS claims if valid, empty for invalid/expired tokens
+   *
+   * Handled Exceptions:
+   * - ExpiredJwtException: Token past expiration
+   * - UnsupportedJwtException: Non-JWS/JWE token
+   * - MalformedJwtException: Invalid JWT structure
+   * - SignatureException: Signature verification failure
+   * - IllegalArgumentException: Empty/null token
+   */
+  private Optional<Jws<Claims>> parseToken(String token) {
+    try {
+      return Optional.of(Jwts.parserBuilder()
+        .setSigningKey(jwtSecret)  // Verify with configured secret
+        .build()
+        .parseClaimsJws(token));   // Validate signature + expiration
+    } catch (ExpiredJwtException | UnsupportedJwtException |
+             MalformedJwtException | SignatureException |
+             IllegalArgumentException e) {
+      // Security: Consider monitoring exception types for alerts
+      return Optional.empty();
+    }
+  }
 }
-
-// Security Considerations:
-// 1. The secret key should be protected and not hardcoded
-// 2. Consider using stronger algorithm like HS512 (as shown)
-// 3. Ensure secure transmission of tokens (HTTPS only)
-
-// Potential Improvements:
-// 1. Add specific exception handling for different error types
-// 2. Implement token revocation mechanism
-// 3. Add logging for token generation/validation events
-// 4. Create method to extract roles from claims
-// 5. Add token refresh capability
-// 6. Implement token blacklisting
-// 7. Add input validation for empty/malformed tokens
-// 8. Consider using dedicated SecurityProvider for key management

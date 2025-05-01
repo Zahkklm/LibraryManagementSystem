@@ -1,4 +1,4 @@
-package com.library.auth.dto;
+package com.librarysystem.authservice.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

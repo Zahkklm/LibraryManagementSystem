@@ -1,4 +1,4 @@
-package com.library.auth.security;
+package com.librarysystem.authservice.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
