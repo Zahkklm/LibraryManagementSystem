@@ -1,4 +1,4 @@
-package com.library.auth.dto;
+package com.librarysystem.authservice.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Data;
