@@ -19,7 +19,7 @@ eureka:
 
 app:
   jwt:
-    secret: ${JWT_SECRET:defaultSecretKey}
+    secret: ${JWT_SECRET:hK8yP2vX9nM4qR7tL1wC5gF3jB6uE0zD8xA4mS9kN2bQ5vH7yT0pW3fR6cL8}
     expiration-ms: ${JWT_EXPIRATION:86400000}  # 24h
 
 feign:
