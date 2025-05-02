@@ -2,18 +2,26 @@ package com.librarysystem.authservice.security;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.beans.factory.annotation.Value;
+
 import static org.assertj.core.api.Assertions.assertThat;
 
 /**
  * Unit tests for JwtUtils.
  * Tests token generation and validation.
  */
+@ActiveProfiles("test")
 class JwtUtilsTest {
 
     private JwtUtils jwtUtils;
-    private final String SECRET = "testSecretKeyWithLength512BitsForHS512SignatureAlgorithm";
+
+    @Value("${app.jwt.secret}")
+    private String SECRET;
+
     private final long EXPIRATION = 3600000; // 1 hour
 
     /**
