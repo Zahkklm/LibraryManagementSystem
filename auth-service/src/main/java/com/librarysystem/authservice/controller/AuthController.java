@@ -1,4 +1,5 @@
 package com.librarysystem.authservice.controller;
+import com.librarysystem.authservice.client.UserServiceClient;
 import com.librarysystem.authservice.dto.JwtResponse;
 import com.librarysystem.authservice.dto.LoginRequest;
 import com.librarysystem.authservice.security.JwtUtils;
