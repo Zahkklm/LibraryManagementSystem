@@ -1,0 +1,22 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: user-service
+  datasource:
+    url: jdbc:postgresql://postgres:5432/library?currentSchema=users
+    username: user_service
+    password: userpass
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+  cloud:
+    config:
+      uri: http://config-server:8888
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://discovery-service:8761/eureka
