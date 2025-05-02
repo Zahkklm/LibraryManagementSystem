@@ -21,3 +21,13 @@ app:
   jwt:
     secret: ${JWT_SECRET:defaultSecretKey}
     expiration-ms: ${JWT_EXPIRATION:86400000}  # 24h
+
+feign:
+  circuitbreaker:
+    enabled: true
+  client:
+    config:
+      default:
+        connectTimeout: 5000
+        readTimeout: 5000
+        loggerLevel: basic
