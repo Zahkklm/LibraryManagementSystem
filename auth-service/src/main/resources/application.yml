@@ -17,6 +17,7 @@ eureka:
     service-url:
       defaultZone: http://discovery-service:8761/eureka
 
-jwt:
-  secret: ${JWT_SECRET:defaultSecretKey}
-  expiration: ${JWT_EXPIRATION:86400000}  # 24h
+app:
+  jwt:
+    secret: ${JWT_SECRET:defaultSecretKey}
+    expiration-ms: ${JWT_EXPIRATION:86400000}  # 24h
