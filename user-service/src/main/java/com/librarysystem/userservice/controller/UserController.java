@@ -1,5 +1,6 @@
 package com.librarysystem.userservice.controller;
 
+import com.librarysystem.userservice.dto.LoginRequest;
 import com.librarysystem.userservice.dto.UserCreateRequest;
 import com.librarysystem.userservice.entity.User;
 import com.librarysystem.userservice.service.UserService;
@@ -68,5 +69,24 @@ public class UserController {
     public ResponseEntity<Void> deactivateUser(@PathVariable Long id) {
         userService.deactivateUser(id);
         return ResponseEntity.ok().build();
+    }
+    
+    /**
+     * Validates user credentials.
+     * Used by auth-service for user authentication.
+     * Checks both password match and account status.
+     *
+     * @param request DTO containing login credentials
+     * @return ResponseEntity with boolean indicating validity
+     */
+    @PostMapping("/validate")
+    public ResponseEntity<Boolean> validateCredentials(@Valid @RequestBody LoginRequest request) {
+        try {
+            User user = userService.getUserByEmail(request.getEmail());
+            boolean isValid = passwordEncoder.matches(request.getPassword(), user.getPassword());
+            return ResponseEntity.ok(isValid && user.isActive());
+        } catch (RuntimeException e) {
+            return ResponseEntity.ok(false);  // Return false for non-existent users
+        }
     }
 }
