@@ -1,0 +1,89 @@
+{
+    "realm": "library",
+    "enabled": true,
+    "accessTokenLifespan": 3600,
+    "registrationAllowed": false,
+    "roles": {
+      "realm": [
+        {
+          "name": "ADMIN",
+          "description": "Administrator role"
+        },
+        {
+          "name": "LIBRARIAN",
+          "description": "Librarian role"
+        },
+        {
+          "name": "MEMBER",
+          "description": "Member role"
+        }
+      ]
+    },
+    "clients": [
+      {
+        "clientId": "library-client",
+        "name": "Library Management System",
+        "secret": "client-secret",
+        "enabled": true,
+        "redirectUris": ["http://localhost:8080/*"],
+        "webOrigins": ["+"],
+        "directAccessGrantsEnabled": true,
+        "standardFlowEnabled": true,
+        "serviceAccountsEnabled": true,
+        "publicClient": false,
+        "protocol": "openid-connect",
+        "fullScopeAllowed": true,
+        "defaultClientScopes": ["web-origins", "profile", "roles", "email"]
+      }
+    ],
+    "users": [
+      {
+        "username": "admin@example.com",
+        "email": "admin@example.com",
+        "enabled": true,
+        "emailVerified": true,
+        "firstName": "Admin",
+        "lastName": "User",
+        "credentials": [
+          {
+            "type": "password",
+            "value": "admin123",
+            "temporary": false
+          }
+        ],
+        "realmRoles": ["ADMIN"]
+      },
+      {
+        "username": "librarian@example.com",
+        "email": "librarian@example.com",
+        "enabled": true,
+        "emailVerified": true,
+        "firstName": "Librarian",
+        "lastName": "User",
+        "credentials": [
+          {
+            "type": "password",
+            "value": "librarian123",
+            "temporary": false
+          }
+        ],
+        "realmRoles": ["LIBRARIAN"]
+      },
+      {
+        "username": "member@example.com",
+        "email": "member@example.com",
+        "enabled": true,
+        "emailVerified": true,
+        "firstName": "Member",
+        "lastName": "User",
+        "credentials": [
+          {
+            "type": "password",
+            "value": "member123",
+            "temporary": false
+          }
+        ],
+        "realmRoles": ["MEMBER"]
+      }
+    ]
+}
