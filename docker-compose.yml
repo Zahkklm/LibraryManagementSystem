@@ -6,27 +6,24 @@ services:
       POSTGRES_DB: library
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin123
+      KEYCLOAK_DB: keycloak
+      KEYCLOAK_USER: keycloak
+      KEYCLOAK_PASSWORD: keycloak
     volumes:
       - postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - 5432:5432
-
-  zookeeper:
-    image: confluentinc/cp-zookeeper:7.3.0
+    
+  pgadmin:
+    image: dpage/pgadmin4
     environment:
-      ZOOKEEPER_CLIENT_PORT: 2181
-
-  kafka:
-    image: confluentinc/cp-kafka:7.3.0
-    depends_on:
-      - zookeeper
-    environment:
-      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
-      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
-      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      PGADMIN_DEFAULT_EMAIL: admin@example.com
+      PGADMIN_DEFAULT_PASSWORD: adminadmin123
     ports:
-      - 9092:9092
+      - "5050:80"
+    depends_on:
+      - postgres
 
   # CORE SERVICES  
   discovery-service:
@@ -35,35 +32,38 @@ services:
       - 8761:8761
     environment:
       - SPRING_PROFILES_ACTIVE=docker
-
-  config-server:
-    build: config-server
-    ports:
-      - 8888:8888
-    depends_on:
-      - discovery-service
-
+  
+  # API Gateway
   api-gateway:
     build: api-gateway
-    ports:
-      - 8080:8080
     environment:
+      - SPRING_PROFILES_ACTIVE=docker
+      - KEYCLOAK_URL=http://keycloak:8080
       - EUREKA_URL=http://discovery-service:8761/eureka
+    ports:
+      - "8080:8080"
     depends_on:
       - discovery-service
+      - keycloak
 
-  book-service:
-    build: book-service
+  # Keycloak
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/library?currentSchema=books
-      - SPRING_DATASOURCE_USERNAME=book_service
-      - SPRING_DATASOURCE_PASSWORD=bookpass
-      - EUREKA_URL=http://discovery-service:8761/eureka
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+      - KEYCLOAK_ADMIN=admin
+      - KEYCLOAK_ADMIN_PASSWORD=admin
+      - KC_DB=postgres
+      - KC_DB_URL=jdbc:postgresql://postgres:5432/keycloak
+      - KC_DB_USERNAME=keycloak
+      - KC_DB_PASSWORD=keycloak
+      - KC_HOSTNAME=localhost
+    volumes:
+      - ./keycloak/import:/opt/keycloak/data/import
+    command: start-dev --import-realm
+    ports:
+        - "8090:8080"
     depends_on:
       - postgres
-      - discovery-service
-      - kafka
 
   user-service:
     build: user-service
@@ -71,23 +71,13 @@ services:
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/library?currentSchema=users
       - SPRING_DATASOURCE_USERNAME=user_service
       - SPRING_DATASOURCE_PASSWORD=userpass
+      - SPRING_PROFILES_ACTIVE=docker
       - EUREKA_URL=http://discovery-service:8761/eureka
+    ports:
+      - "8082:8082"
     depends_on:
       - postgres
       - discovery-service
-
-  borrow-service:
-    build: borrow-service
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/library?currentSchema=borrows
-      - SPRING_DATASOURCE_USERNAME=borrow_service
-      - SPRING_DATASOURCE_PASSWORD=borrowpass
-      - EUREKA_URL=http://discovery-service:8761/eureka
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-    depends_on:
-      - postgres
-      - discovery-service
-      - kafka
 
   auth-service:
     build: auth-service
@@ -97,38 +87,16 @@ services:
       - SPRING_DATASOURCE_PASSWORD=authpass
       - SPRING_PROFILES_ACTIVE=docker
       - EUREKA_URL=http://discovery-service:8761/eureka
-      - JWT_SECRET=Z9#vq9LpX4R!TgWbZn2d3K7Mw$BkS8yHcNfUjQmYtP5s6vDxGJhEeA1rC4lOz0Ii
-      - JWT_EXPIRATION=86400000
+      - KEYCLOAK_URL=http://keycloak:8080 
+    ports:
+      - "8084:8084"
     depends_on:
       - postgres
       - discovery-service
-
-  saga-service:
-    build: saga-service
-    environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/library?currentSchema=saga
-      - SPRING_DATASOURCE_USERNAME=saga_service
-      - SPRING_DATASOURCE_PASSWORD=sagapass
-      - EUREKA_URL=http://discovery-service:8761/eureka
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-    depends_on:
-      - postgres
-      - discovery-service
-      - kafka
-
-  notification-service:
-    build: notification-service
-    environment:
-      - EUREKA_URL=http://discovery-service:8761/eureka
-      - KAFKA_BOOTSTRAP_SERVERS=kafka:9092
-    depends_on:
-      - discovery-service
-      - kafka
+      - user-service
 
 volumes:
   postgres_data:
-  zookeeper_data:
-  kafka_data:
 
 networks:
   default:
