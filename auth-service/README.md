@@ -129,3 +129,7 @@ GET /actuator/health
 - Ensure proper secret key length for production (minimum 512 bits for HS512)
 - Configure appropriate token expiration for your use case
 - Review security settings before production deployment
+
+Client → API Gateway → Auth Service → KeycloakService → Keycloak Server
+                                                             ↓
+Client ← API Gateway ← Auth Service ← KeycloakTokenResponse ←
