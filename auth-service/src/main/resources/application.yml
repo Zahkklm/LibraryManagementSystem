@@ -4,30 +4,32 @@ server:
 spring:
   application:
     name: auth-service
-  datasource:
-    url: jdbc:postgresql://postgres:5432/library?currentSchema=auth
-    username: auth_service
-    password: authpass
-  cloud:
-    config:
-      uri: http://config-server:8888
+  # Remove old JWT properties if they were here under 'app.jwt'
+  # app:
+  #   jwt:
+  #     secret: YOUR_OLD_SYMMETRIC_SECRET_KEY_HERE # REMOVE
+  #     expirationMs: 86400000 # REMOVE
 
 eureka:
   client:
-    service-url:
-      defaultZone: http://discovery-service:8761/eureka
+    serviceUrl:
+      defaultZone: ${EUREKA_URL:http://discovery-service:8761/eureka}
+  instance:
+    preferIpAddress: true
 
-app:
-  jwt:
-    secret: ${JWT_SECRET:hK8yP2vX9nM4qR7tL1wC5gF3jB6uE0zD8xA4mS9kN2bQ5vH7yT0pW3fR6cL8}
-    expiration-ms: ${JWT_EXPIRATION:86400000}  # 24h
+# Configuration for user-service client (Feign client)
+# Ensure this points to where user-service is discoverable
+user-service:
+  url: http://user-service/api/users # Or lb://user-service/api/users if Feign is Eureka-aware
 
-feign:
-  circuitbreaker:
-    enabled: true
-  client:
-    config:
-      default:
-        connectTimeout: 5000
-        readTimeout: 5000
-        loggerLevel: basic
+keycloak:
+  auth-server-url: ${KEYCLOAK_URL:http://localhost:8090} # Base URL of Keycloak
+  realm: library
+  client-id: library-client # The client ID auth-service will use to talk to Keycloak
+  client-secret: ${KEYCLOAK_CLIENT_SECRET:client-secret} # Client secret for 'library-client' from Keycloak
+  token-uri: ${keycloak.auth-server-url}/realms/${keycloak.realm}/protocol/openid-connect/token
+
+logging:
+  level:
+    com.librarysystem.authservice: INFO
+    com.librarysystem.authservice.client.KeycloakClient: DEBUG
