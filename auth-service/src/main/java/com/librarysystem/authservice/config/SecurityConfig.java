@@ -1,6 +1,5 @@
 package com.librarysystem.authservice.config;
 
-import com.librarysystem.authservice.security.JwtAuthFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -11,7 +10,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
-import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 
 /**
  * Security configuration for the auth service.
@@ -19,46 +17,41 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
  * 
  * Key features:
  * - Stateless session management (no session cookies)
- * - JWT-based authentication
  * - Public access to /api/auth/** endpoints
  * - BCrypt password encoding
  */
 @Configuration
 @EnableWebSecurity
-@RequiredArgsConstructor
 public class SecurityConfig {
-
-    // JWT filter that checks tokens in request headers
-    private final JwtAuthFilter jwtAuthFilter;
 
     /**
      * Configures security filter chain with custom settings.
      * 
      * Security rules:
      * 1. Disable CSRF (not needed for stateless API)
-     * 2. Public access to auth endpoints
-     * 3. All other endpoints require authentication
+     * 2. Public access to auth endpoints (/api/auth/**)
+     * 3. All other endpoints (if any) would require authentication (but typically auth-service only has public auth endpoints)
      * 4. No session tracking (stateless)
-     * 5. JWT filter runs before username/password authentication
      */
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http.csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll()  // Login endpoints are public
-                .anyRequest().authenticated()                 // Everything else needs auth
+                .requestMatchers("/api/auth/**").permitAll()  // Login and other auth-related endpoints are public
+                .anyRequest().authenticated()                 // Any other hypothetical endpoint would need auth (and rely on headers from Gateway)
             )
             .sessionManagement(session ->
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))  // No sessions
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS));  // No sessions
+            
         return http.build();
     }
 
     /**
      * Creates password encoder for secure password handling.
-     * Uses BCrypt hashing function with default strength (10 rounds).
-     * 
-     * @return BCryptPasswordEncoder instance for password encoding
+     * This is used by user-service, but auth-service doesn't directly use it
+     * if credential validation is fully delegated. However, it's harmless to keep.
+     * If you were to implement password change/reset within auth-service, it might be needed.
+     * @return PasswordEncoder instance
      */
     @Bean
     public PasswordEncoder passwordEncoder() {
