@@ -8,7 +8,6 @@ System is expected function well under 1000 concurrent users with millions of bo
 | Service             | Responsibility                                     | Tech Stack                 | Port | Database Schema | API Gateway Routing |
 |----------------------|----------------------------------------------------|----------------------------|------|-----------------|---------------------|
 | **Service Registry** | Service Discovery                                  | Netflix Eureka             | 8761 | -               | -                   |
-| **Config Server** | Centralized Configuration                          | Spring Cloud Config        | 8888 | Git             | -                   |
 | **Book Service** | Book CRUD, Search, Real-Time Updates              | WebFlux + Spring Data JPA | 8081 | books           | /books/** |
 | **User Service** | User Management, Roles                             | Spring MVC + JPA           | 8082 | users           | /users/** |
 | **Borrow Service** | Borrow/Return Logic, Overdue Tracking              | Spring MVC + JPA           | 8083 | borrows         | /borrows/** |
@@ -24,9 +23,6 @@ System is expected function well under 1000 concurrent users with millions of bo
 ```
 .
 ├── discovery-service
-│   ├── Dockerfile
-│   └── src
-├── config-server
 │   ├── Dockerfile
 │   └── src
 ├── api-gateway
@@ -60,12 +56,10 @@ System is expected function well under 1000 concurrent users with millions of bo
 ## Goals of this Architecture Pattern
 
 * **Schema-based Isolation:** Each microservice utilizes its own dedicated schema within a PostgreSQL database, ensuring data isolation and autonomy.
-* **Centralized Configuration:** Spring Cloud Config provides centralized management of application configurations, fetched from a Git repository.
 * **Service Discovery:** Netflix Eureka enables dynamic service registration and discovery, allowing services to locate and communicate with each other.
 * **Event-Driven Architecture:** Apache Kafka facilitates asynchronous communication between services through an event-driven architecture, improving resilience and decoupling.
 * **Separate Dockerfiles:** Each microservice has its own Dockerfile, allowing for independent containerization and deployment.
 * **Proper Service Dependencies:** Dependencies between services are explicitly defined and managed to ensure correct build and runtime order.
-* **Environment-Specific Configurations:** The system supports different configurations for various environments (e.g., development, testing, production).
 * **Auto Database Initialization:** Databases are automatically initialized with necessary schemas and potentially seed data upon container startup.
 * **Volume Persistence for Databases:** Database data is persisted using Docker volumes, ensuring data is not lost when containers are stopped or restarted.
 * **Network Isolation:** Docker networks are utilized to isolate the communication between services, enhancing security.
