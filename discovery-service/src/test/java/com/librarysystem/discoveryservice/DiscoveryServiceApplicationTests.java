@@ -1,4 +1,4 @@
-package com.librarysystem.discovery;
+package com.librarysystem.discoveryservice;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
