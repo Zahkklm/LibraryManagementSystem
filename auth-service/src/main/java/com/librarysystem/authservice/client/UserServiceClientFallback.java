@@ -1,6 +1,7 @@
 package com.librarysystem.authservice.client;
 
 import com.librarysystem.authservice.dto.LoginRequest;
+import com.librarysystem.authservice.dto.UserDTO;
 import org.springframework.stereotype.Component;
 
 /**
@@ -22,4 +23,9 @@ public class UserServiceClientFallback implements UserServiceClient {
     public boolean validateCredentials(LoginRequest request) {
         return false;  // Fail securely when user-service is unavailable
     }
+
+  @Override
+  public UserDTO getUserByEmail(String email) {
+    return null;
+  }
 }
