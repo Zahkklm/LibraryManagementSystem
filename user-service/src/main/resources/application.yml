@@ -12,11 +12,13 @@ spring:
     hibernate:
       ddl-auto: update
     show-sql: true
-  cloud:
-    config:
-      uri: http://config-server:8888
 
 eureka:
   client:
-    service-url:
+    serviceUrl:
       defaultZone: http://discovery-service:8761/eureka
+
+logging:
+  level:
+    com.librarysystem.userservice.security: DEBUG
+    org.springframework.security: DEBUG
