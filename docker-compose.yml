@@ -14,6 +14,8 @@ services:
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - 5432:5432
+    networks:
+      - library-network
     
   pgadmin:
     image: dpage/pgadmin4
@@ -24,6 +26,8 @@ services:
       - "5050:80"
     depends_on:
       - postgres
+    networks:
+      - library-network
 
   # CORE SERVICES  
   discovery-service:
@@ -32,6 +36,8 @@ services:
       - 8761:8761
     environment:
       - SPRING_PROFILES_ACTIVE=docker
+    networks:
+      - library-network
   
   # API Gateway
   api-gateway:
@@ -45,6 +51,8 @@ services:
     depends_on:
       - discovery-service
       - keycloak
+    networks:
+      - library-network
 
   # Keycloak
   keycloak:
@@ -64,6 +72,8 @@ services:
         - "8090:8080"
     depends_on:
       - postgres
+    networks:
+      - library-network
 
   user-service:
     build: user-service
@@ -73,31 +83,28 @@ services:
       - SPRING_DATASOURCE_PASSWORD=userpass
       - SPRING_PROFILES_ACTIVE=docker
       - EUREKA_URL=http://discovery-service:8761/eureka
-    ports:
-      - "8082:8082"
     depends_on:
       - postgres
       - discovery-service
+    networks:
+      - library-network
 
   auth-service:
     build: auth-service
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/library?currentSchema=auth
-      - SPRING_DATASOURCE_USERNAME=auth_service
-      - SPRING_DATASOURCE_PASSWORD=authpass
       - SPRING_PROFILES_ACTIVE=docker
       - EUREKA_URL=http://discovery-service:8761/eureka
       - KEYCLOAK_URL=http://keycloak:8080 
-    ports:
-      - "8084:8084"
     depends_on:
       - postgres
       - discovery-service
       - user-service
+    networks:
+      - library-network
 
 volumes:
   postgres_data:
 
 networks:
-  default:
+  library-network:
     driver: bridge

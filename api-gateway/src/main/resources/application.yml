@@ -44,6 +44,9 @@ eureka:
     instance:
       prefer-ip-address: true
 
+user-service:
+  url: lb://user-service 
+
 keycloak:
   auth-server-url: ${KEYCLOAK_URL:http://keycloak:8090}
   realm: library

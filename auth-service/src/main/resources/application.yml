@@ -4,11 +4,8 @@ server:
 spring:
   application:
     name: auth-service
-  # Remove old JWT properties if they were here under 'app.jwt'
-  # app:
-  #   jwt:
-  #     secret: YOUR_OLD_SYMMETRIC_SECRET_KEY_HERE # REMOVE
-  #     expirationMs: 86400000 # REMOVE
+  jpa:
+    enabled: false
 
 eureka:
   client:

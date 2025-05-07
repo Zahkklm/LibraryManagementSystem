@@ -1,31 +1,22 @@
 package com.librarysystem.authservice.controller;
 
-import com.librarysystem.authservice.client.KeycloakClient; // Added
+import com.librarysystem.authservice.client.KeycloakClient;
 import com.librarysystem.authservice.client.UserServiceClient;
 import com.librarysystem.authservice.dto.JwtResponse;
 import com.librarysystem.authservice.dto.LoginRequest;
-// import com.librarysystem.authservice.dto.UserDTO; // Keep this if still used elsewhere or remove
 
-import feign.FeignException; // Added
+import feign.FeignException;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.*;
-// import org.springframework.stereotype.Component; // Removed if RestTemplateConfig is removed
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-// import org.springframework.web.client.HttpClientErrorException; // Removed
-// import org.springframework.web.client.RestTemplate; // Removed
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
-// import org.springframework.context.annotation.Bean; // Removed if RestTemplateConfig is removed
-
 
 @RestController
 @RequestMapping("/api/auth")
@@ -33,12 +24,9 @@ import java.util.Map;
 public class AuthController {
 
     private static final Logger logger = LoggerFactory.getLogger(AuthController.class);
-    private final UserServiceClient userServiceClient;
-    // private final RestTemplate restTemplate; // Removed
-    private final KeycloakClient keycloakClient; // Added
 
-    // @Value("${keycloak.token-uri}") // Removed - now used in KeycloakClient
-    // private String keycloakTokenUri;
+    private final UserServiceClient userServiceClient;
+    private final KeycloakClient keycloakClient;
 
     @Value("${keycloak.client-id}")
     private String keycloakClientId;
@@ -46,10 +34,16 @@ public class AuthController {
     @Value("${keycloak.client-secret}")
     private String keycloakClientSecret;
 
+    /**
+     * Handles login requests by validating credentials with user-service and obtaining a token from Keycloak.
+     *
+     * @param request The login request containing email and password.
+     * @return A JWT response containing the access token if successful.
+     */
     @PostMapping("/login")
     public ResponseEntity<JwtResponse> login(@Valid @RequestBody LoginRequest request) {
         try {
-            // 1. Validate credentials with user-service (remains the same)
+            // Step 1: Validate credentials with user-service
             boolean isValid = userServiceClient.validateCredentials(request);
             logger.debug("Credentials validation for {}: {}", request.getEmail(), isValid);
 
@@ -58,24 +52,17 @@ public class AuthController {
                 return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
             }
 
-            // 2. If credentials are valid, request a token from Keycloak using ROPC grant
-            // HttpHeaders headers = new HttpHeaders(); // Not directly needed for Feign like this
-            // headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED); // Handled by Feign client's 'consumes'
+            // Step 2: Request a token from Keycloak using ROPC grant
+            MultiValueMap<String, String> formParams = new LinkedMultiValueMap<>();
+            formParams.add("client_id", keycloakClientId);
+            formParams.add("client_secret", keycloakClientSecret);
+            formParams.add("grant_type", "password");
+            formParams.add("username", request.getEmail());
+            formParams.add("password", request.getPassword());
+            formParams.add("scope", "openid profile email");
 
-            MultiValueMap<String, String> map = new LinkedMultiValueMap<>();
-            map.add("client_id", keycloakClientId);
-            map.add("client_secret", keycloakClientSecret);
-            map.add("grant_type", "password");
-            map.add("username", request.getEmail());
-            map.add("password", request.getPassword());
-            map.add("scope", "openid profile email"); // Request desired scopes
-
-            // HttpEntity<MultiValueMap<String, String>> keycloakRequest = new HttpEntity<>(map, headers); // Not needed for Feign
             logger.info("Requesting token from Keycloak for user: {}", request.getEmail());
-            logger.debug("Keycloak request form params being sent: {}", map); // Added for debugging
-            
-            // ResponseEntity<Map> keycloakResponse = restTemplate.postForEntity(keycloakTokenUri, keycloakRequest, Map.class); // Replaced
-            ResponseEntity<Map<String, Object>> keycloakResponse = keycloakClient.getToken(map); // Changed to use Feign client
+            ResponseEntity<Map<String, Object>> keycloakResponse = keycloakClient.getToken(formParams);
 
             if (keycloakResponse.getStatusCode() == HttpStatus.OK && keycloakResponse.getBody() != null) {
                 String accessToken = (String) keycloakResponse.getBody().get("access_token");
@@ -91,25 +78,15 @@ public class AuthController {
                 return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
             }
 
-        } catch (FeignException.FeignClientException e) { // Changed from HttpClientErrorException
+        } catch (FeignException.FeignClientException e) {
             logger.error("FeignClientException during Keycloak token request for user {}: Status {} - Response Body: {}", request.getEmail(), e.status(), e.contentUTF8(), e);
             return ResponseEntity.status(e.status()).build();
-        } catch (FeignException e) { // Catch other Feign related errors (e.g., server errors, connectivity)
+        } catch (FeignException e) {
             logger.error("FeignException during Keycloak token request for user {}: {}", request.getEmail(), e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
-        }
-         catch (Exception e) {
+        } catch (Exception e) {
             logger.error("Exception during login for user {}: {}", request.getEmail(), e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
 }
-
-// Remove RestTemplateConfig if RestTemplate is no longer used elsewhere in this service
-// @Component
-// class RestTemplateConfig {
-//     @Bean
-//     public RestTemplate restTemplate() {
-//         return new RestTemplate();
-//     }
-// }
