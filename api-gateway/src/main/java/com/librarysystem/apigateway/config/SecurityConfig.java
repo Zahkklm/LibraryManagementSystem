@@ -1,5 +1,6 @@
 package com.librarysystem.apigateway.config;
 
+import jakarta.ws.rs.HttpMethod;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -55,35 +56,22 @@ public class SecurityConfig {
     @Bean
     public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http) {
         return http
-                // Disable CSRF since we're using stateless authentication
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                
-                // Configure CORS
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                
-                // Configure authorization rules
                 .authorizeExchange(exchanges -> exchanges
-                        // Public endpoints that don't require authentication
-                        .pathMatchers("/api/auth/**").permitAll()
-                        .pathMatchers("/actuator/health", "/actuator/info").permitAll()
+                        // Allow public access to auth endpoints
+                        .pathMatchers(HttpMethod.POST, "/api/auth/login").permitAll() 
+                        .pathMatchers("/api/auth/**").permitAll() 
                         
-                        // Admin-only endpoints
-                        .pathMatchers("/actuator/**").hasRole("ADMIN")
+                        // Allow public access to user registration
+                        .pathMatchers(HttpMethod.POST, "/api/users").permitAll()
+                        .pathMatchers(HttpMethod.POST, "/api/users/validate").permitAll()
                         
-                        // Endpoints restricted by role
+                        // Secure other user endpoints
                         .pathMatchers("/api/users/**").hasAnyRole("ADMIN", "LIBRARIAN")
-                        .pathMatchers("/api/books/**").authenticated()
-                        .pathMatchers("/api/borrows/**").authenticated()
-                        
-                        // Default: require authentication for everything else
                         .anyExchange().authenticated()
                 )
-                
-                // Configure OAuth2 resource server with JWT
-                .oauth2ResourceServer(oauth2 -> oauth2
-                        .jwt(jwt -> jwt
-                                .jwtAuthenticationConverter(grantedAuthoritiesExtractor()))
-                )
+                .oauth2ResourceServer(oauth2 -> oauth2.jwt(jwt -> jwt.jwtAuthenticationConverter(grantedAuthoritiesExtractor())))
                 .build();
     }
 
@@ -138,6 +126,8 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
+        allowedOrigins = List.of("*");
+
         // Configure allowed origins (from application properties)
         configuration.setAllowedOrigins(allowedOrigins);
         
