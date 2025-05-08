@@ -30,3 +30,6 @@ logging:
   level:
     com.librarysystem.authservice: INFO
     com.librarysystem.authservice.client.KeycloakClient: DEBUG
+
+gateway:
+  secret: M3lT#9fGz!8qP@Z^rKw!5xL7e2Bj&T0v
