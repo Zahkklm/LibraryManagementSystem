@@ -94,15 +94,7 @@ The system employs a microservice architecture where distinct services handle sp
     ```
 
 2.  **Build all services and start containers:**
-    *   Build each service individually using Maven (from the project root or within each service directory):
-        ```bash
-        # Example for user-service
-        cd user-service
-        mvn clean package -DskipTests
-        cd ..
-        # Repeat for other services: api-gateway, auth-service, discovery-service, etc.
-        ```
-    *   Then run Docker Compose from the project root to build images and start the containers:
+    *   Run Docker Compose from the project root to build images and start the containers:
         ```bash
         docker-compose up --build
         ```
