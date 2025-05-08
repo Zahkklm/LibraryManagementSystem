@@ -29,13 +29,28 @@ public class FeignClientConfig {
     @Value("${keycloak.client-secret}")
     private String clientSecret;
 
+    @Value("${gateway.secret}") 
+    private String gatewaySecretHeaderValue;
+
     private String cachedServiceToken;
     private long tokenExpiryTimeMillis;
     private static final long TOKEN_EXPIRY_BUFFER_SECONDS = 30; // Fetch new token 30s before actual expiry
+    private static final String GATEWAY_SECRET_HEADER_NAME = "X-Gateway-Secret";
+
 
     @Bean
     public RequestInterceptor requestInterceptor() {
         return requestTemplate -> {
+            // Add the X-Gateway-Secret header for inter-service communication
+            // to satisfy the GatewayValidationFilter in downstream services like user-service.
+            if (gatewaySecretHeaderValue != null && !gatewaySecretHeaderValue.isEmpty()) {
+                requestTemplate.header(GATEWAY_SECRET_HEADER_NAME, gatewaySecretHeaderValue);
+                logger.debug("Added {} header to Feign request to {}", GATEWAY_SECRET_HEADER_NAME, requestTemplate.url());
+            } else {
+                logger.warn("{} is not configured. Header will not be added for Feign requests.", GATEWAY_SECRET_HEADER_NAME);
+            }
+
+            // Existing logic for service account token (if needed for other purposes)
             String serviceToken = getServiceToken();
             if (serviceToken != null) {
                 requestTemplate.header("Authorization", "Bearer " + serviceToken);

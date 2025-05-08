@@ -2,50 +2,57 @@ package com.librarysystem.authservice.config;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter; // Required for addFilterBefore
 
 /**
- * Security configuration for the auth service.
- * 
+ * Security configuration for the auth-service.
+ *
  * Key features:
- * - Public access to /api/auth/** endpoints
- * - Stateless session management
- * - CSRF protection disabled
+ * - Enables Spring Security's web security support.
+ * - Optionally enables method-level security (e.g., @PreAuthorize).
+ * - Disables CSRF protection (common for stateless APIs).
+ * - Configures stateless session management.
+ * - Validates X-Gateway-Secret header for all requests.
+ * - Defines authorization rules:
+ *   - Allows public access to all /api/auth/** endpoints (after gateway secret validation).
+ *   - Requires authentication for any other endpoints (if they were to be added).
+ * - Provides a PasswordEncoder bean.
  */
 @Configuration
+@EnableWebSecurity
+@EnableMethodSecurity(prePostEnabled = true)
 public class SecurityConfig {
 
-    /**
-     * Configures security filter chain with custom settings.
-     * 
-     * Security rules:
-     * 1. Disable CSRF (not needed for stateless API)
-     * 2. Public access to auth endpoints (/api/auth/**)
-     * 3. Stateless session management
-     */
+    private final GatewayValidationFilter gatewayValidationFilter;
+
+    public SecurityConfig(GatewayValidationFilter gatewayValidationFilter) {
+        this.gatewayValidationFilter = gatewayValidationFilter;
+    }
+
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-        http.csrf(AbstractHttpConfigurer::disable) // Disable CSRF for stateless APIs
+        http
+            .csrf(AbstractHttpConfigurer::disable)
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            // Add GatewayValidationFilter to run before other Spring Security filters
+            // This ensures the X-Gateway-Secret is checked for all incoming requests.
+            .addFilterBefore(gatewayValidationFilter, UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll() // Public access to auth endpoints
-                .anyRequest().authenticated()               // Secure any other endpoints (if added in the future)
-            )
-            .sessionManagement(session -> 
-                session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)); // Stateless session management
+                .requestMatchers("/api/auth/**").permitAll()
+                .anyRequest().authenticated()
+            );
 
         return http.build();
     }
 
-    /**
-     * Creates a password encoder for secure password handling.
-     * 
-     * @return PasswordEncoder instance
-     */
     @Bean
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();

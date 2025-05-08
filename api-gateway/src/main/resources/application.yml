@@ -8,6 +8,7 @@ spring:
     import: "optional:configserver:"
   cloud:
     gateway:
+      secret: M3lT#9fGz!8qP@Z^rKw!5xL7e2Bj&T0v
       default-filters:
       - AddUserHeaders
       discovery:
@@ -20,13 +21,16 @@ spring:
           predicates:
             - Path=/api/auth/**
           filters:
-            - StripPrefix=0            
+            - StripPrefix=0           
+            - AddRequestHeader=X-Gateway-Secret, M3lT#9fGz!8qP@Z^rKw!5xL7e2Bj&T0v
         - id: user-service
           uri: lb://user-service
           predicates:
             - Path=/api/users/**
+            - Path=/api/users
           filters:
             - StripPrefix=0
+            - AddRequestHeader=X-Gateway-Secret, M3lT#9fGz!8qP@Z^rKw!5xL7e2Bj&T0v
 
   security:
     oauth2:
@@ -53,3 +57,7 @@ keycloak:
   resource: library-client
   credentials:
     secret: ${KEYCLOAK_CLIENT_SECRET:client-secret}
+
+logging:
+  level:
+    org.springframework.security: DEBUG
