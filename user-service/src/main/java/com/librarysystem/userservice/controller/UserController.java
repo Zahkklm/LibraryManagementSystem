@@ -59,8 +59,19 @@ public class UserController {
      * @return The user as a DTO.
      */
     @GetMapping("/{id}")
-    public ResponseEntity<UserDTO> getUserById(@PathVariable Long id) {
-        logger.info("Fetching user with ID: {}", id);
+    public ResponseEntity<UserDTO> getUserById(@PathVariable Long id, @RequestHeader("X-User-Id") String currentUserId, 
+                                            @RequestHeader("X-User-Roles") String roles) {
+        logger.info("Fetching user with ID: {}, requested by user: {}", id, currentUserId);
+        
+        // Check if user is accessing own data or is an admin
+        boolean isAdmin = roles.contains("ADMIN");
+        boolean isSelf = currentUserId.equals(id.toString());
+        
+        if (!isAdmin && !isSelf) {
+            logger.warn("Access denied: User {} attempted to access user {} data", currentUserId, id);
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
         User user = userService.getUserById(id);
         logger.info("User with ID: {} found.", id);
         return ResponseEntity.ok(UserDTO.fromEntity(user));
