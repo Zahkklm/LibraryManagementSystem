@@ -9,7 +9,9 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import com.librarysystem.bookservice.dto.ErrorResponse; 
+import com.librarysystem.bookservice.dto.ErrorResponse;
+import com.librarysystem.bookservice.dto.UpdateBookRequest;
+
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 
@@ -141,5 +143,74 @@ public class BookController {
     public ResponseEntity<List<BookResponse>> getAllBooks() {
         List<BookResponse> books = bookService.getAllBooks();
         return ResponseEntity.ok(books);
+    }
+
+        /**
+     * Updates an existing book in the library collection.
+     * <p>
+     * This endpoint allows librarians and administrators to modify book information
+     * such as title, author, number of copies, etc. The request is validated to
+     * ensure all provided fields have proper format and values.
+     * <p>
+     * If the book with the given ID does not exist, a 404 NOT FOUND response is returned.
+     * 
+     * @param id The unique identifier of the book to update
+     * @param updateRequest The validated request containing fields to update
+     * @return The updated book with HTTP 200 (OK) status
+     * @throws jakarta.validation.ConstraintViolationException if validation fails
+     * @throws com.librarysystem.bookservice.exception.BookNotFoundException if no book exists with the given ID
+     * @throws com.librarysystem.bookservice.exception.IsbnAlreadyExistsException if attempting to update to an ISBN that's already in use
+     */
+    @Operation(summary = "Update an existing book", description = "Modifies book information in the system")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Book updated successfully",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = BookResponse.class))),
+            @ApiResponse(responseCode = "400", description = "Invalid input data",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid Gateway Secret",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient privileges",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "404", description = "Book not found",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "409", description = "Conflict - ISBN already exists",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @PutMapping("/{id}")
+    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
+    public ResponseEntity<BookResponse> updateBook(@PathVariable Long id, @Valid @RequestBody UpdateBookRequest updateRequest) {
+        BookResponse updatedBook = bookService.updateBook(id, updateRequest);
+        return ResponseEntity.ok(updatedBook);
+    }
+
+    /**
+     * Deletes a book from the library collection.
+     * <p>
+     * This endpoint allows librarians and administrators to remove books from the library system.
+     * This operation is permanent and cannot be undone. If the book is currently borrowed,
+     * the implementation may prevent deletion and throw an appropriate exception.
+     * <p>
+     * If the book with the given ID does not exist, this operation is still considered
+     * successful (idempotent deletion).
+     * 
+     * @param id The unique identifier of the book to delete
+     * @return Empty response with HTTP 204 (NO CONTENT) status indicating successful deletion
+     * @throws com.librarysystem.bookservice.exception.BookInUseException if the book is currently borrowed
+     */
+    @Operation(summary = "Delete a book by its ID", description = "Removes a book from the library system")
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "204", description = "Book successfully deleted"),
+            @ApiResponse(responseCode = "401", description = "Unauthorized - Invalid Gateway Secret",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "403", description = "Forbidden - Insufficient privileges",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class))),
+            @ApiResponse(responseCode = "409", description = "Conflict - Book is currently borrowed",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
+    })
+    @DeleteMapping("/{id}")
+    @PreAuthorize("hasAnyRole('LIBRARIAN', 'ADMIN')")
+    public ResponseEntity<Void> deleteBook(@PathVariable Long id) {
+        bookService.deleteBook(id);
+        return ResponseEntity.noContent().build();
     }
 }
