@@ -64,7 +64,9 @@ services:
       - KC_DB_URL=jdbc:postgresql://postgres:5432/keycloak
       - KC_DB_USERNAME=keycloak
       - KC_DB_PASSWORD=keycloak
-      - KC_HOSTNAME=localhost
+      - KC_HOSTNAME=keycloak
+      - KC_HOSTNAME_PORT=8080
+      - KC_HOSTNAME_STRICT=false
     volumes:
       - ./keycloak/import:/opt/keycloak/data/import
     command: start-dev --import-realm
@@ -99,6 +101,24 @@ services:
       - postgres
       - discovery-service
       - user-service
+    networks:
+      - library-network
+
+  book-service:
+    build:
+      context: ./book-service
+      dockerfile: Dockerfile
+    image: librarysystem/book-service
+    container_name: book-service
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/library?currentSchema=users
+      - SPRING_DATASOURCE_USERNAME=book_service_user
+      - SPRING_DATASOURCE_PASSWORD=bookpass
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
+      - SPRING_JPA_HIBERNATE_DDL_AUTO=update 
+    depends_on:
+      - discovery-service
+      - postgres
     networks:
       - library-network
 
