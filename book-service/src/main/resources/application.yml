@@ -1,0 +1,38 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: book-service
+  datasource:
+    url: jdbc:postgresql://postgres:5432/library?currentSchema=users
+    username: book_service_user
+    password: bookpass
+    driver-class-name: org.postgresql.Driver
+  jpa:
+    hibernate:
+      ddl-auto: update # Or validate in prod, none if using Flyway/Liquibase
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        default_schema: books
+    show-sql: true
+
+api:
+  gateway:
+    secret: M3lT#9fGz!8qP@Z^rKw!5xL7e2Bj&T0v
+
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://discovery-service:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+# Optional: Logging configuration
+logging:
+  level:
+    com.librarysystem.bookservice: DEBUG
+    org.springframework.web: INFO
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql: TRACE
