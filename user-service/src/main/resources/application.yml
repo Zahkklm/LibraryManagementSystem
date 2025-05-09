@@ -37,5 +37,5 @@ eureka:
 
 logging:
   level:
-    com.librarysystem.userservice.security: DEBUG
-    org.springframework.security: DEBUG
+    com.librarysystem.userservice: DEBUG
+    org.springframework.web: DEBUG
