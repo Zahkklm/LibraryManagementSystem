@@ -4,23 +4,21 @@ server:
 spring:
   application:
     name: auth-service
-  jpa:
-    enabled: false
 
 eureka:
   client:
     serviceUrl:
       defaultZone: ${EUREKA_URL:http://discovery-service:8761/eureka}
   instance:
-    preferIpAddress: true
+    prefer-ip-address: true
 
 # Configuration for user-service client (Feign client)
-# Ensure this points to where user-service is discoverable
+# This is to ensure this points to where user-service is discoverable
 user-service:
   url: http://user-service/api/users # Or lb://user-service/api/users if Feign is Eureka-aware
 
 keycloak:
-  auth-server-url: ${KEYCLOAK_URL:http://localhost:8090} # Base URL of Keycloak
+  auth-server-url: ${KEYCLOAK_URL:http://localhost:8080} # Base URL of Keycloak
   realm: library
   client-id: library-client # The client ID auth-service will use to talk to Keycloak
   client-secret: ${KEYCLOAK_CLIENT_SECRET:client-secret} # Client secret for 'library-client' from Keycloak
