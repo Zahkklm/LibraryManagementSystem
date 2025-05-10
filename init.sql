@@ -75,3 +75,22 @@ ALTER DEFAULT PRIVILEGES FOR ROLE admin IN SCHEMA books GRANT ALL PRIVILEGES ON 
 CREATE DATABASE keycloak;
 ALTER DATABASE keycloak OWNER TO keycloak;
 GRANT ALL PRIVILEGES ON DATABASE keycloak TO keycloak;
+
+-- Create borrowdb user
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'borrow_service_user') THEN
+        CREATE ROLE borrow_service_user WITH LOGIN PASSWORD 'borrowpass';
+    END IF;
+END $$;
+
+-- Create borrow database if it doesn't exist
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_database WHERE datname = 'borrowdb') THEN
+        CREATE DATABASE borrowdb OWNER borrow_service_user;
+    END IF;
+END $$;
+
+-- Grant privileges
+GRANT ALL PRIVILEGES ON DATABASE borrowdb TO borrow_service_user;

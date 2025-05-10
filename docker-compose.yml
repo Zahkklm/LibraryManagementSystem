@@ -1,5 +1,19 @@
 services:
   # INFRASTRUCTURE
+  axon-server:
+    image: axoniq/axonserver:latest
+    hostname: axon-server
+    ports:
+      - "8024:8024"
+      - "8124:8124"
+    environment:
+      - AXONIQ_AXONSERVER_NAME=library-axon-server
+      - AXONIQ_AXONSERVER_HOSTNAME=axon-server
+    volumes:
+      - axon-data:/data
+      - axon-events:/eventdata
+      - ./axon-config:/config
+
   postgres:
     image: postgres:15
     environment:
@@ -121,8 +135,25 @@ services:
       - postgres
     networks:
       - library-network
+  
+  borrow-service:
+    build: borrow-service
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/borrowdb
+      - SPRING_DATASOURCE_USERNAME=borrow_service_user
+      - SPRING_DATASOURCE_PASSWORD=borrowpass
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
+      - AXON_SERVER_ADDRESSES=axon-server:8124
+    depends_on:
+      - postgres
+      - axon-server
+      - discovery-service
+    networks:
+      - library-network
 
 volumes:
+  axon-data:
+  axon-events:
   postgres_data:
 
 networks:
