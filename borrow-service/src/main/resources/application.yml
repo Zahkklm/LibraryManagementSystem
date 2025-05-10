@@ -1,0 +1,13 @@
+spring:
+  datasource:
+    url: jdbc:postgresql://postgres:5432/borrowdb
+    username: borrow_service_user
+    password: borrowpass
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+
+axon:
+  server:
+    addresses: axon-server:8124
