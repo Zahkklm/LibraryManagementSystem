@@ -1,5 +1,7 @@
 package com.librarysystem.borrowservice.entity;
 
+import java.time.LocalDate;
+
 import jakarta.persistence.Entity;
 import jakarta.persistence.Id;
 import lombok.AllArgsConstructor;
@@ -24,5 +26,6 @@ public class Borrow {
     private String id;
     private Long userId;
     private Long bookId;
-    private String status; // PENDING, RESERVED, FAILED
+    private String status; // PENDING, RESERVED, FAILED, CANCELLED
+    private LocalDate returnDate;
 }
