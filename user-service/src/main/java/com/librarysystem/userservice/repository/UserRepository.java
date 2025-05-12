@@ -12,7 +12,7 @@ import java.util.Optional;
  * Provides custom query methods for user-specific operations.
  */
 @Repository
-public interface UserRepository extends JpaRepository<User, Long> {
+public interface UserRepository extends JpaRepository<User, String> {
     
     /**
      * Finds a user by their email address.

@@ -6,12 +6,13 @@ import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
 import java.util.List;
+
 /**
  * Repository interface for managing Borrow entities.
  * Provides CRUD operations for borrow requests.
  */
 @Repository
 public interface BorrowRepository extends JpaRepository<Borrow, String> {
-    List<Borrow> findByUserId(Long userId);
+    List<Borrow> findByUserId(String userId); // Changed from Long to String
     List<Borrow> findByDueDateBeforeAndStatusNot(LocalDate date, String status);
 }

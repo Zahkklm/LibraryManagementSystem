@@ -13,7 +13,7 @@ import lombok.NoArgsConstructor;
  * 
  * Fields:
  * - id: Unique identifier for the borrow request.
- * - userId: ID of the user making the borrow request.
+ * - userId: UUID string of the user making the borrow request.
  * - bookId: ID of the book being borrowed.
  * - status: Status of the borrow request (e.g., PENDING, RESERVED, FAILED, CANCELLED, RETURNED).
  * - returnDate: The date the book was returned.
@@ -25,8 +25,8 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 public class Borrow {
     @Id
-    private String id;           // Unique identifier for the borrow request
-    private Long userId;         // ID of the user making the borrow request
+    private String id;           // Unique identifier for the borrow request (UUID string)
+    private String userId;       // UUID string of the user making the borrow request
     private Long bookId;         // ID of the book being borrowed
     private String status;       // Borrow status: PENDING, RESERVED, FAILED, CANCELLED, RETURNED
     private LocalDate returnDate; // Date the book was returned
