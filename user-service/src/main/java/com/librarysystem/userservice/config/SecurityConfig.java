@@ -57,8 +57,7 @@ public class SecurityConfig {
                 logger.info("User profile endpoints configured with MEMBER+ access");
                 
                 auth
-                    .requestMatchers(HttpMethod.DELETE, "/api/users/{id:\\d+}").hasRole("ADMIN");
-                logger.info("Admin endpoints configured: DELETE /api/users/{id}");
+                    .requestMatchers(HttpMethod.DELETE, "/api/users/{id:.+}").hasRole("ADMIN");                logger.info("Admin endpoints configured: DELETE /api/users/{id}");
                 
                 // Default rules
                 auth

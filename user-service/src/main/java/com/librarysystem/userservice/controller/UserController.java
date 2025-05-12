@@ -44,7 +44,7 @@ public class UserController {
      * @return A response indicating success.
      */
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deactivateUser(@PathVariable Long id) {
+    public ResponseEntity<Void> deactivateUser(@PathVariable String id) {
         logger.info("Deactivating user with ID: {}", id);
         userService.deactivateUser(id);
         logger.info("User with ID: {} deactivated successfully.", id);
@@ -56,22 +56,25 @@ public class UserController {
      * Assumes that the API Gateway has already validated the request.
      *
      * @param id The ID of the user to retrieve.
+     * @param currentUserId The ID of the user making the request (from X-User-Id header).
+     * @param roles The roles of the user making the request (from X-User-Roles header).
      * @return The user as a DTO.
      */
     @GetMapping("/{id}")
-    public ResponseEntity<UserDTO> getUserById(@PathVariable Long id, @RequestHeader("X-User-Id") String currentUserId, 
-                                            @RequestHeader("X-User-Roles") String roles) {
+    public ResponseEntity<UserDTO> getUserById(
+            @PathVariable String id,
+            @RequestHeader("X-User-Id") String currentUserId,
+            @RequestHeader("X-User-Roles") String roles) {
         logger.info("Fetching user with ID: {}, requested by user: {}", id, currentUserId);
-        
-        // Check if user is accessing own data or is an admin
+
         boolean isAdmin = roles.contains("ADMIN");
-        boolean isSelf = currentUserId.equals(id.toString());
-        
+        boolean isSelf = currentUserId.equals(id);
+
         if (!isAdmin && !isSelf) {
             logger.warn("Access denied: User {} attempted to access user {} data", currentUserId, id);
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        
+
         User user = userService.getUserById(id);
         logger.info("User with ID: {} found.", id);
         return ResponseEntity.ok(UserDTO.fromEntity(user));

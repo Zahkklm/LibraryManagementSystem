@@ -41,8 +41,8 @@ public class BookSagaListener {
 
         String borrowId = (String) event.get("borrowId");
         Long bookId = event.get("bookId") != null ? ((Number) event.get("bookId")).longValue() : null;
-        Long userId = event.get("userId") != null ? ((Number) event.get("userId")).longValue() : null;
-
+        String userId = event.get("userId") != null ? event.get("userId").toString() : null;
+        
         if (bookId == null || userId == null) {
             logger.warn("Book ID or User ID is missing in event: {}", event);
             if (borrowId != null) {

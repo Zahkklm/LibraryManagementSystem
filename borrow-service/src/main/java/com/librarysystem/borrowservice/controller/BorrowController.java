@@ -2,7 +2,10 @@ package com.librarysystem.borrowservice.controller;
 
 import com.librarysystem.borrowservice.entity.Borrow;
 import com.librarysystem.borrowservice.repository.BorrowRepository;
+
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -19,10 +22,12 @@ import java.util.List;
 /**
  * REST controller for handling borrow requests.
  * User ID and roles are extracted from the Spring Security context (populated by RoleExtractionFilter).
+ * Now supports UUID user IDs from Keycloak.
  */
 @RestController
 @RequestMapping("/api/borrows")
 @RequiredArgsConstructor
+@Slf4j
 public class BorrowController {
     private final BorrowRepository borrowRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
@@ -31,14 +36,10 @@ public class BorrowController {
         return SecurityContextHolder.getContext().getAuthentication();
     }
 
-    private Long getCurrentUserId() {
+    private String getCurrentUserId() {
         Authentication auth = getAuth();
         if (auth == null || auth.getPrincipal() == null) return null;
-        try {
-            return Long.valueOf(auth.getPrincipal().toString());
-        } catch (NumberFormatException e) {
-            return null;
-        }
+        return auth.getPrincipal().toString(); // Now returns UUID string
     }
 
     private boolean hasRole(String role) {
@@ -50,12 +51,22 @@ public class BorrowController {
 
     /**
      * Create a new borrow request.
-     * User ID is always taken from the authenticated principal.
+     * MEMBER can only borrow for themselves. LIBRARIAN/ADMIN can borrow for any user.
      */
     @PostMapping
-    public ResponseEntity<String> borrowBook(@RequestParam Long bookId) {
-        Long userId = getCurrentUserId();
-        if (userId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+    public ResponseEntity<String> borrowBook(
+            @RequestParam Long bookId,
+            @RequestParam String userId) { // userId is now String (UUID)
+
+        log.info("POST borrowBook called for " + userId);
+
+        String currentUserId = getCurrentUserId();
+        if (currentUserId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+
+        boolean isPrivileged = hasRole("LIBRARIAN") || hasRole("ADMIN");
+        if (!isPrivileged && !currentUserId.equals(userId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You can only borrow for yourself.");
+        }
 
         String borrowId = UUID.randomUUID().toString();
         LocalDate borrowDate = LocalDate.now();
@@ -73,16 +84,16 @@ public class BorrowController {
 
     /**
      * Cancel a borrow request (compensating action).
-     * Only the owner (MEMBER) or LIBRARIAN/ADMIN can cancel.
+     * MEMBER can only cancel their own borrows. LIBRARIAN/ADMIN can cancel any.
      */
     @PostMapping("/{borrowId}/cancel")
     public ResponseEntity<String> cancelBorrow(@PathVariable String borrowId) {
-        Long userId = getCurrentUserId();
-        if (userId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        String currentUserId = getCurrentUserId();
+        if (currentUserId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
         boolean isPrivileged = hasRole("LIBRARIAN") || hasRole("ADMIN");
 
         return borrowRepository.findById(borrowId).map(borrow -> {
-            if (!isPrivileged && !borrow.getUserId().equals(userId)) {
+            if (!isPrivileged && !borrow.getUserId().equals(currentUserId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You can only cancel your own borrows.");
             }
             if ("RESERVED".equals(borrow.getStatus())) {
@@ -101,16 +112,16 @@ public class BorrowController {
 
     /**
      * Return a borrowed book.
-     * Only the owner (MEMBER) or LIBRARIAN/ADMIN can return.
+     * MEMBER can only return their own borrows. LIBRARIAN/ADMIN can return any.
      */
     @PostMapping("/{borrowId}/return")
     public ResponseEntity<String> returnBook(@PathVariable String borrowId) {
-        Long userId = getCurrentUserId();
-        if (userId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
+        String currentUserId = getCurrentUserId();
+        if (currentUserId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
         boolean isPrivileged = hasRole("LIBRARIAN") || hasRole("ADMIN");
 
         return borrowRepository.findById(borrowId).map(borrow -> {
-            if (!isPrivileged && !borrow.getUserId().equals(userId)) {
+            if (!isPrivileged && !borrow.getUserId().equals(currentUserId)) {
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body("You can only return your own borrows.");
             }
             if ("RESERVED".equals(borrow.getStatus())) {
@@ -134,13 +145,13 @@ public class BorrowController {
      */
     @GetMapping("/{borrowId}")
     public ResponseEntity<Borrow> getBorrow(@PathVariable String borrowId) {
-        Long userId = getCurrentUserId();
-        if (userId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        String currentUserId = getCurrentUserId();
+        if (currentUserId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         boolean isPrivileged = hasRole("LIBRARIAN") || hasRole("ADMIN");
 
         return borrowRepository.findById(borrowId)
                 .map(borrow -> {
-                    if (isPrivileged || borrow.getUserId().equals(userId)) {
+                    if (isPrivileged || borrow.getUserId().equals(currentUserId)) {
                         return ResponseEntity.ok(borrow);
                     } else {
                         return ResponseEntity.status(HttpStatus.FORBIDDEN).<Borrow>build();
@@ -155,18 +166,14 @@ public class BorrowController {
      */
     @GetMapping("/history")
     public ResponseEntity<List<Borrow>> getUserHistory(
-            @RequestParam(value = "userId", required = false) Long userIdParam) {
-        Long userId = getCurrentUserId();
-        if (userId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+            @RequestParam(value = "userId", required = false) String userIdParam) { // userId is String
+        String currentUserId = getCurrentUserId();
+        if (currentUserId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
         boolean isPrivileged = hasRole("LIBRARIAN") || hasRole("ADMIN");
 
-        if (isPrivileged && userIdParam != null) {
-            List<Borrow> borrows = borrowRepository.findByUserId(userIdParam);
-            return ResponseEntity.ok(borrows);
-        } else {
-            List<Borrow> borrows = borrowRepository.findByUserId(userId);
-            return ResponseEntity.ok(borrows);
-        }
+        String effectiveUserId = (isPrivileged && userIdParam != null) ? userIdParam : currentUserId;
+        List<Borrow> borrows = borrowRepository.findByUserId(effectiveUserId);
+        return ResponseEntity.ok(borrows);
     }
 
     /**
