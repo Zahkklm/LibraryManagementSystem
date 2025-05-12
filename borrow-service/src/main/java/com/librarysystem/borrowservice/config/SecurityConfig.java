@@ -1,5 +1,7 @@
 package com.librarysystem.borrowservice.config;
 
+import com.librarysystem.borrowservice.config.GatewayValidationFilter;
+import com.librarysystem.borrowservice.config.RoleExtractionFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -63,14 +65,14 @@ public class SecurityConfig {
             .addFilterBefore(gatewayValidationFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterAfter(roleExtractionFilter, GatewayValidationFilter.class)
             .authorizeHttpRequests(authorize -> authorize
-                // Allow all authenticated users to borrow books
-                .requestMatchers(HttpMethod.POST, "/api/borrow/**").hasAnyRole("MEMBER", "LIBRARIAN", "ADMIN")
-                // Allow users to view their own borrows
-                .requestMatchers(HttpMethod.GET, "/api/borrow/**").hasAnyRole("MEMBER", "LIBRARIAN", "ADMIN")
-                // (Optional) Only LIBRARIAN or ADMIN can delete or update borrows
-                .requestMatchers(HttpMethod.DELETE, "/api/borrow/**").hasAnyRole("LIBRARIAN", "ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/borrow/**").hasAnyRole("LIBRARIAN", "ADMIN")
-                // Fallback: any other request must be authenticated
+                // Define access rules based on roles.
+                // Example: Allow all authenticated users (any role from gateway) to GET books
+                .requestMatchers(HttpMethod.GET, "/api/books/**").hasAnyRole("MEMBER", "LIBRARIAN", "ADMIN")
+                // Example: Allow LIBRARIAN or ADMIN to POST, PUT, DELETE books
+                .requestMatchers(HttpMethod.POST, "/api/books").hasAnyRole("LIBRARIAN", "ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/books/**").hasAnyRole("LIBRARIAN", "ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/books/**").hasAnyRole("LIBRARIAN", "ADMIN")
+                // Fallback: any other request must be authenticated (though specific roles are better)
                 .anyRequest().authenticated()
             );
 
