@@ -23,9 +23,8 @@ A scalable, microservices-based Library Management System for managing books, us
 | API Gateway            | Routing, JWT validation, header enrichment, CORS            | Spring Cloud Gateway, Spring Security         | 8080 | -        | * (all requests)     |
 | Auth Service           | Authentication, JWT issuance (Keycloak ROPC grant)          | Spring Boot, Spring Security, Feign           | 8084 | auth     | /api/auth/**         |
 | User Service           | User CRUD, roles, credential validation, Keycloak sync      | Spring Boot, Spring MVC, JPA, Keycloak Admin  | 8082 | users    | /api/users/**        |
-| Book Service           | Book CRUD, search, inventory                                | Spring Boot (WebFlux/JPA), Spring Security    | 8081 | books    | /api/books/**        |
-| Borrow Service         | Borrow/return logic, fines (Planned)                        | Spring Boot, Spring MVC, JPA                  | 8083 | borrows  | /api/borrows/**      |
-| Saga Service           | Distributed transaction orchestration (Planned)             | Spring Boot, Kafka                            | 8085 | saga     | /api/saga/**         |
+| Book Service           | Book CRUD, search, inventory                                | Spring Boot (MVC/JPA), Spring Security    | 8081 | books    | /api/books/**        |
+| Borrow Service         | Borrow/return logic, fines                                  | Spring Boot, Spring MVC, JPA                  | 8083 | borrows  | /api/borrows/**      |
 | Notification Service   | User notifications (Planned)                                | Spring Boot, Kafka, WebSocket                 | 8086 | -        | /api/notifications/**|
 
 ---
