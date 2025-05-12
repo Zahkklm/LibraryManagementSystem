@@ -74,4 +74,44 @@ public class BookSagaListener {
             logger.info("Book reservation failed. Book ID: {} not available or no copies left.", bookId);
         }
     }
+
+    /**
+     * Handles compensation event for cancelled reservations.
+     * Increments available copies when a borrow is cancelled.
+     *
+     * @param event the event data containing borrowId and bookId
+     */
+    @KafkaListener(topics = "book-reservation-cancelled", groupId = "book-saga")
+    public void handleBookReservationCancelled(Map<String, Object> event) {
+        Long bookId = event.get("bookId") != null ? ((Number) event.get("bookId")).longValue() : null;
+        if (bookId == null) {
+            logger.warn("Book ID is missing in compensation event: {}", event);
+            return;
+        }
+        bookRepository.findById(bookId).ifPresent(book -> {
+            book.setAvailableCopies(book.getAvailableCopies() + 1);
+            bookRepository.save(book);
+            logger.info("Compensation: Incremented available copies for book ID: {}", bookId);
+        });
+    }
+
+    /**
+     * Handles book return events.
+     * Increments available copies when a book is returned.
+     *
+     * @param event the event data containing borrowId and bookId
+     */
+    @KafkaListener(topics = "book-returned", groupId = "book-saga")
+    public void handleBookReturned(Map<String, Object> event) {
+        Long bookId = event.get("bookId") != null ? ((Number) event.get("bookId")).longValue() : null;
+        if (bookId == null) {
+            logger.warn("Book ID is missing in return event: {}", event);
+            return;
+        }
+        bookRepository.findById(bookId).ifPresent(book -> {
+            book.setAvailableCopies(book.getAvailableCopies() + 1);
+            bookRepository.save(book);
+            logger.info("Book returned: Incremented available copies for book ID: {}", bookId);
+        });
+    }
 }
