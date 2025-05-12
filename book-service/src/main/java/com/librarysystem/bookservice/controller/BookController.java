@@ -24,20 +24,20 @@ import java.util.List;
 
 /**
  * REST controller for managing library book resources.
- * 
- * This controller handles HTTP requests related to book operations in the library system,
+ *
+ * <p>This controller handles HTTP requests related to book operations in the library system,
  * including creating, retrieving, updating, and deleting books. Access to these operations
  * is restricted based on user roles, enforcing a least-privilege security model:
- * 
- *   Read operations (GET) - Available to all authenticated users (MEMBER, LIBRARIAN, ADMIN)
- *   Write operations (POST, PUT, DELETE) - Restricted to staff with elevated privileges (LIBRARIAN, ADMIN)
- * 
- * 
- * Security is enforced through method-level {@code @PreAuthorize} annotations that rely on
+ * <ul>
+ *   <li>Read operations (GET) - Available to all authenticated users (MEMBER, LIBRARIAN, ADMIN)</li>
+ *   <li>Write operations (POST, PUT, DELETE) - Restricted to staff with elevated privileges (LIBRARIAN, ADMIN)</li>
+ * </ul>
+ *
+ * <p>Security is enforced through method-level {@code @PreAuthorize} annotations that rely on
  * the Spring Security context established by {@code RoleExtractionFilter} based on user roles
  * propagated from the API Gateway.
- * 
- * All endpoints under {@code /api/books/**} are protected by {@code GatewayValidationFilter}
+ *
+ * <p>All endpoints under {@code /api/books/**} are protected by {@code GatewayValidationFilter}
  * to ensure requests originate from the trusted API Gateway.
  */
 @RestController
@@ -50,15 +50,13 @@ public class BookController {
 
     /**
      * Creates a new book record in the library system.
-     * 
-     * This endpoint is restricted to librarians and administrators who are authorized
+     *
+     * <p>This endpoint is restricted to librarians and administrators who are authorized
      * to add new books to the library collection. The request is validated to ensure
      * all required fields are present and correctly formatted.
-     * 
+     *
      * @param createRequest The validated book creation details including title, author, ISBN, etc.
      * @return The created book with HTTP 201 (CREATED) status
-     * @throws jakarta.validation.ConstraintViolationException if validation fails
-     * @throws com.librarysystem.bookservice.exception.IsbnAlreadyExistsException if a book with the same ISBN already exists
      */
     @Operation(summary = "Add a new book", description = "Creates a new book record in the system.")
     @ApiResponses(value = {
@@ -82,12 +80,12 @@ public class BookController {
 
     /**
      * Retrieves a book by its unique identifier.
-     * 
-     * This endpoint is available to all authenticated users (members, librarians, and administrators)
+     *
+     * <p>This endpoint is available to all authenticated users (members, librarians, and administrators)
      * as part of the library's basic functionality to browse available books.
-     * 
+     *
      * @param id The unique identifier of the book to retrieve
-     * @return The requested book with HTTP 200 (OK) status if found, 
+     * @return The requested book with HTTP 200 (OK) status if found,
      *         or HTTP 404 (NOT FOUND) if no book exists with the given ID
      */
     @Operation(summary = "Get a book by its ID")
@@ -109,17 +107,24 @@ public class BookController {
 
     /**
      * Retrieves a book by its ISBN (International Standard Book Number).
-     * 
-     * ISBN provides a standardized way to identify books across libraries worldwide.
+     *
+     * <p>ISBN provides a standardized way to identify books across libraries worldwide.
      * This endpoint allows lookup of books by their ISBN, which is particularly useful
      * for verifying the presence of specific editions in the library's collection.
-     * 
+     *
      * @param isbn The ISBN of the book to retrieve
      * @return The requested book with HTTP 200 (OK) status if found,
      *         or HTTP 404 (NOT FOUND) if no book exists with the given ISBN
      */
     @Operation(summary = "Get a book by its ISBN")
-    @ApiResponses(value = { /* ... */ })
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Book found",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = BookResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden"),
+            @ApiResponse(responseCode = "404", description = "Book not found",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = ErrorResponse.class)))
+    })
     @GetMapping("/isbn/{isbn}")
     @PreAuthorize("hasAnyRole('MEMBER', 'LIBRARIAN', 'ADMIN')")
     public ResponseEntity<BookResponse> getBookByIsbn(@PathVariable String isbn) {
@@ -130,14 +135,19 @@ public class BookController {
 
     /**
      * Retrieves all books in the library collection.
-     * 
-     * This endpoint returns a complete list of all books currently registered in the system.
+     *
+     * <p>This endpoint returns a complete list of all books currently registered in the system.
      * For large libraries, this endpoint might be paginated in future implementations.
-     * 
+     *
      * @return A list of all books with HTTP 200 (OK) status
      */
     @Operation(summary = "Get all books")
-    @ApiResponses(value = { /* ... */ })
+    @ApiResponses(value = {
+            @ApiResponse(responseCode = "200", description = "Books found",
+                    content = @Content(mediaType = "application/json", schema = @Schema(implementation = BookResponse.class))),
+            @ApiResponse(responseCode = "401", description = "Unauthorized"),
+            @ApiResponse(responseCode = "403", description = "Forbidden")
+    })
     @GetMapping
     @PreAuthorize("hasAnyRole('MEMBER', 'LIBRARIAN', 'ADMIN')")
     public ResponseEntity<List<BookResponse>> getAllBooks() {
@@ -145,21 +155,18 @@ public class BookController {
         return ResponseEntity.ok(books);
     }
 
-        /**
+    /**
      * Updates an existing book in the library collection.
-     * <p>
-     * This endpoint allows librarians and administrators to modify book information
+     *
+     * <p>This endpoint allows librarians and administrators to modify book information
      * such as title, author, number of copies, etc. The request is validated to
      * ensure all provided fields have proper format and values.
      * <p>
      * If the book with the given ID does not exist, a 404 NOT FOUND response is returned.
-     * 
+     *
      * @param id The unique identifier of the book to update
      * @param updateRequest The validated request containing fields to update
      * @return The updated book with HTTP 200 (OK) status
-     * @throws jakarta.validation.ConstraintViolationException if validation fails
-     * @throws com.librarysystem.bookservice.exception.BookNotFoundException if no book exists with the given ID
-     * @throws com.librarysystem.bookservice.exception.IsbnAlreadyExistsException if attempting to update to an ISBN that's already in use
      */
     @Operation(summary = "Update an existing book", description = "Modifies book information in the system")
     @ApiResponses(value = {
@@ -185,17 +192,16 @@ public class BookController {
 
     /**
      * Deletes a book from the library collection.
-     * <p>
-     * This endpoint allows librarians and administrators to remove books from the library system.
+     *
+     * <p>This endpoint allows librarians and administrators to remove books from the library system.
      * This operation is permanent and cannot be undone. If the book is currently borrowed,
      * the implementation may prevent deletion and throw an appropriate exception.
      * <p>
      * If the book with the given ID does not exist, this operation is still considered
      * successful (idempotent deletion).
-     * 
+     *
      * @param id The unique identifier of the book to delete
      * @return Empty response with HTTP 204 (NO CONTENT) status indicating successful deletion
-     * @throws com.librarysystem.bookservice.exception.BookInUseException if the book is currently borrowed
      */
     @Operation(summary = "Delete a book by its ID", description = "Removes a book from the library system")
     @ApiResponses(value = {

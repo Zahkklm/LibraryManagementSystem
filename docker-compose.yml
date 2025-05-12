@@ -1,5 +1,7 @@
+version: '3.8'
+
 services:
-  # INFRASTRUCTURE
+  # Main Postgres for core services
   postgres:
     image: postgres:15
     environment:
@@ -16,7 +18,64 @@ services:
       - 5432:5432
     networks:
       - library-network
-    
+
+  # Dedicated Postgres for borrow-service
+  borrow-postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: borrowdb
+      POSTGRES_USER: borrow_service_user
+      POSTGRES_PASSWORD: borrowpass
+    volumes:
+      - borrow_postgres_data:/var/lib/postgresql/data
+      - ./init_borrowdb.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - 5433:5432
+    networks:
+      - library-network
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - library-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    networks:
+      - library-network
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8081:8080"
+    environment:
+      - KAFKA_CLUSTERS_0_NAME=local
+      - KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=kafka:9092
+      - KAFKA_CLUSTERS_0_ZOOKEEPER=zookeeper:2181
+    depends_on:
+      - kafka
+      - zookeeper
+    networks:
+      - library-network
+
+  # PgAdmin for DB management
   pgadmin:
     image: dpage/pgadmin4
     environment:
@@ -26,10 +85,11 @@ services:
       - "5050:80"
     depends_on:
       - postgres
+      - borrow-postgres
     networks:
       - library-network
 
-  # CORE SERVICES  
+  # Service Discovery
   discovery-service:
     build: discovery-service
     ports:
@@ -38,7 +98,7 @@ services:
       - SPRING_PROFILES_ACTIVE=docker
     networks:
       - library-network
-  
+
   # API Gateway
   api-gateway:
     build: api-gateway
@@ -54,7 +114,7 @@ services:
     networks:
       - library-network
 
-  # Keycloak
+  # Keycloak for authentication
   keycloak:
     image: quay.io/keycloak/keycloak:24.0
     environment:
@@ -71,12 +131,13 @@ services:
       - ./keycloak/import:/opt/keycloak/data/import
     command: start-dev --import-realm
     ports:
-        - "8090:8080"
+      - "8090:8080"
     depends_on:
       - postgres
     networks:
       - library-network
 
+  # User Service
   user-service:
     build: user-service
     environment:
@@ -91,6 +152,7 @@ services:
     networks:
       - library-network
 
+  # Auth Service
   auth-service:
     build: auth-service
     environment:
@@ -104,6 +166,7 @@ services:
     networks:
       - library-network
 
+  # Book Service
   book-service:
     build:
       context: ./book-service
@@ -111,7 +174,7 @@ services:
     image: librarysystem/book-service
     container_name: book-service
     environment:
-      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/library?currentSchema=users
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/library?currentSchema=books
       - SPRING_DATASOURCE_USERNAME=book_service_user
       - SPRING_DATASOURCE_PASSWORD=bookpass
       - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
@@ -122,8 +185,23 @@ services:
     networks:
       - library-network
 
+  # Borrow Service
+  borrow-service:
+    build: borrow-service
+    environment:
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://borrow-postgres:5432/borrowdb
+      - SPRING_DATASOURCE_USERNAME=borrow_service_user
+      - SPRING_DATASOURCE_PASSWORD=borrowpass
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
+    depends_on:
+      - borrow-postgres
+      - discovery-service
+    networks:
+      - library-network
+
 volumes:
   postgres_data:
+  borrow_postgres_data:
 
 networks:
   library-network:

@@ -1,9 +1,9 @@
--- Create schemas for each microservice
+-- Create schemas for each microservice (in the main 'library' database)
 CREATE SCHEMA IF NOT EXISTS auth;
 CREATE SCHEMA IF NOT EXISTS users;
 CREATE SCHEMA IF NOT EXISTS books;
 
--- Create roles with password authentication
+-- Create roles with password authentication (for main DB services)
 DO $$
 BEGIN
     -- Auth Service
@@ -16,7 +16,7 @@ BEGIN
         CREATE ROLE user_service WITH LOGIN PASSWORD 'userpass';
     END IF;
     
-    -- Book Service (NEW)
+    -- Book Service 
     IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'book_service_user') THEN
         CREATE ROLE book_service_user WITH LOGIN PASSWORD 'bookpass';
     END IF;
@@ -41,7 +41,7 @@ ALTER DEFAULT PRIVILEGES IN SCHEMA users GRANT SELECT, INSERT, UPDATE, DELETE ON
 GRANT USAGE, SELECT, UPDATE ON ALL SEQUENCES IN SCHEMA users TO user_service;
 ALTER DEFAULT PRIVILEGES IN SCHEMA users GRANT USAGE, SELECT, UPDATE ON SEQUENCES TO user_service;
 
--- Grant privileges for books schema (NEW)
+-- Grant privileges for books schema
 GRANT CREATE, USAGE ON SCHEMA books TO book_service_user;
 GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA books TO book_service_user;
 ALTER DEFAULT PRIVILEGES IN SCHEMA books GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO book_service_user;
