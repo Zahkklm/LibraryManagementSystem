@@ -43,8 +43,14 @@ public class BookSagaListener {
         Long bookId = event.get("bookId") != null ? ((Number) event.get("bookId")).longValue() : null;
         Long userId = event.get("userId") != null ? ((Number) event.get("userId")).longValue() : null;
 
-        if (bookId == null) {
-            logger.warn("Book ID is missing in event: {}", event);
+        if (bookId == null || userId == null) {
+            logger.warn("Book ID or User ID is missing in event: {}", event);
+            if (borrowId != null) {
+                kafkaTemplate.send("book-reserve-failed", Map.of(
+                    "borrowId", borrowId
+                ));
+                logger.info("Sent book-reserve-failed event due to missing bookId or userId for borrowId: {}", borrowId);
+            }
             return;
         }
 
