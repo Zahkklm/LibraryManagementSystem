@@ -6,12 +6,55 @@ A scalable, microservices-based Library Management System for managing books, us
 
 ## Architecture Overview
 
-- **Microservice Architecture:** Each domain (users, books, borrows, etc.) is handled by a dedicated service, enabling modularity and independent scaling.
-- **API Gateway:** Central entry point for all client requests, handling routing, JWT validation, and header enrichment.
-- **Service Discovery:** Netflix Eureka enables dynamic service registration and lookup.
-- **Identity & Access Management:** Keycloak manages users, roles, and issues JWTs.
-- **Database:** PostgreSQL with schema-per-service isolation.
-- **Containerization:** Docker & Docker Compose for local development and deployment.
+This project is a **microservices-based Library Management System** designed for scalability, modularity, and security. Each domain (users, books, borrows, etc.) is handled by a dedicated service, enabling independent development and deployment.
+
+- **API Gateway:**  
+  - The single entry point for all client requests.
+  - Handles routing, JWT validation (with Keycloak), user/role header enrichment, and adds `X-Gateway-Secret` for downstream trust.
+  - Integrates with Eureka for service discovery.
+  - See [api-gateway/README.md](api-gateway/README.md) for details.
+
+- **Auth Service:**  
+  - Handles `/api/auth/login` and `/api/auth/register`.
+  - Orchestrates authentication: validates credentials via user-service, requests JWT from Keycloak, returns token to client.
+  - Uses Feign to communicate with user-service.
+  - See [auth-service/README.md](auth-service/README.md).
+
+- **User Service:**  
+  - Handles `/api/users` endpoints (CRUD, credential validation).
+  - On registration, creates user in Keycloak (via admin REST API), retrieves UUID, and saves user in its own DB with Keycloak UUID as primary key.
+  - Validates credentials for login.
+  - See [user-service/README.md](user-service/README.md).
+
+- **Book Service:**  
+  - Manages books (`/api/books` endpoints).
+  - CRUD operations, inventory management, and security via roles.
+  - Listens to Kafka events for book reservation/return (Saga pattern).
+  - See [book-service/README.md](book-service/README.md).
+
+- **Borrow Service:**  
+  - Handles borrowing logic (`/api/borrows` endpoints).
+  - Publishes and consumes Kafka events for borrow/reserve/return workflows.
+  - See [borrow-service/README.md](borrow-service/README.md).
+
+- **Notification Service:**  
+  - (Planned) Will handle user notifications via Kafka/WebSocket.
+
+- **Keycloak:**  
+  - Identity provider for authentication and authorization.
+  - Issues JWTs, manages users and roles.
+
+- **Eureka Discovery Service:**  
+  - Service registry for dynamic discovery and load balancing.
+
+- **Kafka:**  
+  - Used for event-driven communication (Saga pattern) between services.
+
+- **PostgreSQL:**  
+  - Each service uses its own schema or DB for data isolation.
+
+- **Docker Compose:**  
+  - Orchestrates all services, databases, and infrastructure for local development.
 
 ---
 
@@ -23,7 +66,7 @@ A scalable, microservices-based Library Management System for managing books, us
 | API Gateway            | Routing, JWT validation, header enrichment, CORS            | Spring Cloud Gateway, Spring Security         | 8080 | -        | * (all requests)     |
 | Auth Service           | Authentication, JWT issuance (Keycloak ROPC grant)          | Spring Boot, Spring Security, Feign           | 8084 | auth     | /api/auth/**         |
 | User Service           | User CRUD, roles, credential validation, Keycloak sync      | Spring Boot, Spring MVC, JPA, Keycloak Admin  | 8082 | users    | /api/users/**        |
-| Book Service           | Book CRUD, search, inventory                                | Spring Boot (MVC/JPA), Spring Security    | 8081 | books    | /api/books/**        |
+| Book Service           | Book CRUD, search, inventory                                | Spring Boot (MVC/JPA), Spring Security        | 8081 | books    | /api/books/**        |
 | Borrow Service         | Borrow/return logic, fines                                  | Spring Boot, Spring MVC, JPA                  | 8083 | borrows  | /api/borrows/**      |
 | Notification Service   | User notifications (Planned)                                | Spring Boot, Kafka, WebSocket                 | 8086 | -        | /api/notifications/**|
 
@@ -150,3 +193,10 @@ docker-compose up --build
 - Regularly update dependencies and review security.
 
 ---
+
+**For more details on each service, see:**
+- [api-gateway/README.md](api-gateway/README.md)
+- [auth-service/README.md](auth-service/README.md)
+- [user-service/README.md](user-service/README.md)
+- [book-service/README.md](book-service/README.md)
+- [borrow-service/README.md](borrow-service/README.md)
