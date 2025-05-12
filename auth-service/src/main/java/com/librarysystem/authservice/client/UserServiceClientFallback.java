@@ -1,6 +1,7 @@
 package com.librarysystem.authservice.client;
 
 import com.librarysystem.authservice.dto.LoginRequest;
+import com.librarysystem.authservice.dto.UserCreateRequest;
 import com.librarysystem.authservice.dto.UserDTO;
 import org.springframework.stereotype.Component;
 
@@ -11,11 +12,11 @@ import org.springframework.stereotype.Component;
  */
 @Component
 public class UserServiceClientFallback implements UserServiceClient {
-    
+
     /**
      * Default fallback behavior for credential validation.
      * Always returns false to fail securely when service is down.
-     * 
+     *
      * @param request Login credentials (unused in fallback)
      * @return false to deny authentication during service outage
      */
@@ -24,8 +25,20 @@ public class UserServiceClientFallback implements UserServiceClient {
         return false;  // Fail securely when user-service is unavailable
     }
 
-  @Override
-  public UserDTO getUserByEmail(String email) {
-    return null;
-  }
+    @Override
+    public UserDTO getUserByEmail(String email) {
+        return null;
+    }
+
+    /**
+     * Default fallback for user registration.
+     * Returns null to indicate failure when user-service is unavailable.
+     *
+     * @param request User registration details (unused in fallback)
+     * @return null to indicate registration failed
+     */
+    @Override
+    public UserDTO createUser(UserCreateRequest request) {
+        return null;
+    }
 }
