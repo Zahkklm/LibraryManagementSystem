@@ -27,23 +27,29 @@ public class BorrowSagaListener {
     public void handleBookReserved(Map<String, Object> event) {
         String borrowId = (String) event.get("borrowId");
         borrowRepository.findById(borrowId).ifPresent(borrow -> {
-            borrow.setStatus("RESERVED");
-            borrowRepository.save(borrow);
+            if (!"RESERVED".equals(borrow.getStatus())) {
+                borrow.setStatus("RESERVED");
+                borrowRepository.save(borrow);
+            }
+            // else: already processed, idempotency is enforced
         });
     }
 
     /**
      * Handles failed book reservation events.
      * Sets the borrow status to "FAILED" if the reservation failed.
-     *
+     * RESERVED and FAILED status checks enforce idempotency.
+     * 
      * @param event the event data containing the borrowId
      */
     @KafkaListener(topics = "book-reserve-failed", groupId = "borrow-saga")
     public void handleBookReserveFailed(Map<String, Object> event) {
         String borrowId = (String) event.get("borrowId");
         borrowRepository.findById(borrowId).ifPresent(borrow -> {
-            borrow.setStatus("FAILED");
-            borrowRepository.save(borrow);
+            if (!"RESERVED".equals(borrow.getStatus()) && !"FAILED".equals(borrow.getStatus())) {
+                borrow.setStatus("FAILED");
+                borrowRepository.save(borrow);
+            }           
         });
     }
 }
