@@ -1,13 +1,36 @@
 spring:
+  application:
+    name: borrow-service
   datasource:
-    url: jdbc:postgresql://postgres:5432/borrowdb
+    url: jdbc:postgresql://borrow-postgres:5432/borrowdb
     username: borrow_service_user
     password: borrowpass
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
+    database-platform: org.hibernate.dialect.PostgreSQLDialect
+  kafka:
+    bootstrap-servers: kafka:9092
+    consumer:
+      group-id: borrow-saga
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: '*'
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
 
-axon:
-  server:
-    addresses: axon-server:8124
+eureka:
+  client:
+    serviceUrl:
+      defaultZone: http://discovery-service:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+api:
+  gateway:
+    secret: M3lT#9fGz!8qP@Z^rKw!5xL7e2Bj&T0v
+
+
