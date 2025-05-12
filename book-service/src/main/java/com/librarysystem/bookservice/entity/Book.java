@@ -27,7 +27,7 @@ import java.time.LocalDate;
  * </ul>
  */
 @Entity
-@Table(name = "books", schema = "books", 
+@Table(name = "books",
        uniqueConstraints = {@UniqueConstraint(columnNames = {"isbn"})})
 @Data
 @NoArgsConstructor

@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 @Data
 @NoArgsConstructor
 @Entity
-@Table(name = "users", schema = "users")
+@Table(name = "users")
 public class User {
     
     /**
