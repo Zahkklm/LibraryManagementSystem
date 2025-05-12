@@ -16,7 +16,6 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 import java.util.Collections;
-import java.util.List;
 
 @Service
 @RequiredArgsConstructor
@@ -28,19 +27,23 @@ public class KeycloakAdminService {
     @Value("${keycloak.target-realm}")
     private String targetRealm;
 
-    public void createKeycloakUser(UserCreateRequest userRequest, String plainPassword) {
+    /**
+     * Creates a user in Keycloak and assigns a role.
+     * Returns the Keycloak user ID (UUID) if successful.
+     */
+    public String createKeycloakUser(UserCreateRequest userRequest, String plainPassword) {
         UserRepresentation userRepresentation = new UserRepresentation();
-        userRepresentation.setUsername(userRequest.getEmail()); // Keycloak typically uses username, can be same as email
+        userRepresentation.setUsername(userRequest.getEmail());
         userRepresentation.setEmail(userRequest.getEmail());
         userRepresentation.setFirstName(userRequest.getFirstName());
         userRepresentation.setLastName(userRequest.getLastName());
         userRepresentation.setEnabled(true);
-        userRepresentation.setEmailVerified(true); // Assuming email is verified upon creation
+        userRepresentation.setEmailVerified(true);
 
         CredentialRepresentation credential = new CredentialRepresentation();
         credential.setType(CredentialRepresentation.PASSWORD);
         credential.setValue(plainPassword);
-        credential.setTemporary(false); // User does not need to change password on first login
+        credential.setTemporary(false);
         userRepresentation.setCredentials(Collections.singletonList(credential));
 
         RealmResource realmResource = keycloakAdminClient.realm(targetRealm);
@@ -48,23 +51,24 @@ public class KeycloakAdminService {
 
         Response response = null;
         try {
-            logger.info("Attempting to create user {} in Keycloak realm {}", userRequest.getEmail(), targetRealm);
-            response = usersResource.create(userRepresentation); // Create the user
+            logger.info("Creating user {} in Keycloak realm {}", userRequest.getEmail(), targetRealm);
+            response = usersResource.create(userRepresentation);
 
-            if (response.getStatus() == 201) { // 201 Created
+            if (response.getStatus() == 201) {
                 String userId = response.getLocation().getPath().replaceAll(".*/([^/]+)$", "$1");
-                logger.info("User {} created successfully in Keycloak with ID: {}", userRequest.getEmail(), userId);
+                logger.info("User {} created in Keycloak with ID: {}", userRequest.getEmail(), userId);
 
                 // Assign realm role
                 UserRole roleToAssign = userRequest.getRole() != null ? userRequest.getRole() : UserRole.MEMBER;
-                RoleRepresentation realmRoleRepresentation = realmResource.roles().get(roleToAssign.name()).toRepresentation();
-                if (realmRoleRepresentation != null) {
-                    usersResource.get(userId).roles().realmLevel().add(Collections.singletonList(realmRoleRepresentation));
+                RoleRepresentation realmRole = realmResource.roles().get(roleToAssign.name()).toRepresentation();
+                if (realmRole != null) {
+                    usersResource.get(userId).roles().realmLevel().add(Collections.singletonList(realmRole));
                     logger.info("Assigned role {} to user {} in Keycloak", roleToAssign.name(), userRequest.getEmail());
                 } else {
                     logger.warn("Role {} not found in Keycloak realm {}. User {} created without this role.",
                             roleToAssign.name(), targetRealm, userRequest.getEmail());
                 }
+                return userId;
             } else {
                 String errorMessage = response.readEntity(String.class);
                 logger.error("Failed to create user {} in Keycloak. Status: {}, Reason: {}",

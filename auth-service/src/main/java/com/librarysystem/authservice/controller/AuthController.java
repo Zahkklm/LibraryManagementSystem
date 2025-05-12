@@ -4,6 +4,8 @@ import com.librarysystem.authservice.client.KeycloakClient;
 import com.librarysystem.authservice.client.UserServiceClient;
 import com.librarysystem.authservice.dto.JwtResponse;
 import com.librarysystem.authservice.dto.LoginRequest;
+import com.librarysystem.authservice.dto.UserCreateRequest;
+import com.librarysystem.authservice.dto.UserDTO;
 
 import feign.FeignException;
 import jakarta.validation.Valid;
@@ -87,6 +89,27 @@ public class AuthController {
         } catch (Exception e) {
             logger.error("Exception during login for user {}: {}", request.getEmail(), e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+
+    @PostMapping("/register")
+    public ResponseEntity<?> register(@Valid @RequestBody UserCreateRequest request) {
+        try {
+            // 1. Call user-service to create the user (user-service will create in Keycloak and DB)
+            UserDTO userDTO = userServiceClient.createUser(request);
+
+            // 2. Optionally, auto-login after registration (get JWT from Keycloak)
+            LoginRequest loginRequest = new LoginRequest(request.getEmail(), request.getPassword());
+            JwtResponse jwtResponse = this.login(loginRequest).getBody();
+
+            // 3. Return user info and JWT
+            return ResponseEntity.status(HttpStatus.CREATED)
+                    .body(Map.of("user", userDTO, "token", jwtResponse != null ? jwtResponse.getToken() : null));
+        } catch (FeignException.Conflict e) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Email already exists");
+        } catch (Exception e) {
+            logger.error("Registration failed for email {}: {}", request.getEmail(), e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Registration failed");
         }
     }
 }

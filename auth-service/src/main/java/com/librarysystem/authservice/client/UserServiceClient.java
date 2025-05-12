@@ -9,6 +9,8 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 
+import com.librarysystem.authservice.dto.UserCreateRequest;
+
 /**
  * Feign client interface for communicating with the user-service.
  * Provides declarative REST client for user-service endpoints.
@@ -39,4 +41,13 @@ public interface UserServiceClient {
      */
     @GetMapping("/email/{email}")
     UserDTO getUserByEmail(@PathVariable String email);
+
+    /**
+     * Registers a new user via user-service.
+     *
+     * @param request DTO containing user registration details
+     * @return UserDTO of the created user
+     */
+    @PostMapping
+    UserDTO createUser(@RequestBody UserCreateRequest request);
 }

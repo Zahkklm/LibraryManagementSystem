@@ -3,6 +3,8 @@ package com.librarysystem.authservice.dto;
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
+import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 /**
  * Data Transfer Object for login requests.
@@ -10,8 +12,10 @@ import lombok.Data;
  * Used by both auth-service and user-service.
  */
 @Data  // Lombok annotation for getters, setters, equals, hashCode, toString
+@NoArgsConstructor
+@AllArgsConstructor
 public class LoginRequest {
-    
+
     /**
      * User's email address.
      * Must be a valid email format.
