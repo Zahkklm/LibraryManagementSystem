@@ -116,12 +116,11 @@ docker-compose up --build
 ├── auth-service           # Authentication orchestration
 ├── user-service           # User management
 ├── book-service           # Book management
-├── borrow-service         # (Planned) Borrowing management
-├── saga-service           # (Planned) Distributed transactions
+├── borrow-service         # Borrowing management
 ├── notification-service   # (Planned) Notifications
 ├── docker-compose.yml     # Docker orchestration
 ├── README.md              # This file
-├── LowLevelDesign.png     # (Optional) Architecture diagram
+├── LowLevelDesign.png     # Architecture diagram
 ├── keycloak/import/realm-export.json # Keycloak realm config
 └── init.sql               # PostgreSQL schema/init script
 ```
