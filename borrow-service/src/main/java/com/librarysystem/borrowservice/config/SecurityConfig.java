@@ -16,63 +16,48 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.context.RequestAttributeSecurityContextRepository;
 
 /**
- * Security configuration for the Book Service.
- * 
- * This class configures Spring Security for the Book Service microservice, defining
- * authorization rules, filter chains, and security-related behavior. It integrates
- * with the API Gateway's security model by applying two crucial filters:
+ * Security configuration for the Borrow Service.
+ *
+ * Configures Spring Security for the Borrow Service microservice, defining
+ * authorization rules, filter chains, and security-related behavior. Integrates
+ * with the API Gateway's security model by applying:
  * 1. GatewayValidationFilter - Ensures requests originate from our trusted API Gateway
  * 2. RoleExtractionFilter - Extracts user roles from headers to enable authorization
- * 
- * The configuration implements a defense-in-depth approach to security within our
- * microservice architecture, with stateless authentication and fine-grained 
- * role-based access control.
+ *
+ * The configuration implements stateless authentication and fine-grained
+ * role-based access control for borrow operations.
  */
 @Configuration
 @EnableWebSecurity
-@EnableMethodSecurity(prePostEnabled = true) // To enable @PreAuthorize, @PostAuthorize
+@EnableMethodSecurity(prePostEnabled = true)
 @RequiredArgsConstructor
 public class SecurityConfig {
 
     private final GatewayValidationFilter gatewayValidationFilter;
     private final RoleExtractionFilter roleExtractionFilter;
 
-    /**
-     * Defines the security filter chain and authorization rules.
-     * 
-     * This method:
-     * 1. Configures stateless security appropriate for a microservice
-     * 2. Sets up filters in the correct order of execution
-     * 3. Defines endpoint access based on HTTP method and user role
-     * 
-     * The authorization rules implement a least-privilege model where:
-     * - Reading books (GET) requires any authenticated role (MEMBER, LIBRARIAN, ADMIN)
-     * - Modifying books (POST, PUT, DELETE) requires elevated privileges (LIBRARIAN, ADMIN)
-     * 
-     * @param http The HttpSecurity to configure
-     * @return The configured SecurityFilterChain
-     * @throws Exception If security configuration fails
-     */
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            .csrf(AbstractHttpConfigurer::disable) // Disable CSRF as we are stateless and rely on secrets/tokens
+            .csrf(AbstractHttpConfigurer::disable)
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            // Ensure SecurityContext is not saved in HttpSession
             .securityContext(securityContext -> securityContext
                 .securityContextRepository(new RequestAttributeSecurityContextRepository())
             )
             .addFilterBefore(gatewayValidationFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterAfter(roleExtractionFilter, GatewayValidationFilter.class)
             .authorizeHttpRequests(authorize -> authorize
-                // Define access rules based on roles.
-                // Example: Allow all authenticated users (any role from gateway) to GET books
-                .requestMatchers(HttpMethod.GET, "/api/books/**").hasAnyRole("MEMBER", "LIBRARIAN", "ADMIN")
-                // Example: Allow LIBRARIAN or ADMIN to POST, PUT, DELETE books
-                .requestMatchers(HttpMethod.POST, "/api/books").hasAnyRole("LIBRARIAN", "ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/books/**").hasAnyRole("LIBRARIAN", "ADMIN")
-                .requestMatchers(HttpMethod.DELETE, "/api/books/**").hasAnyRole("LIBRARIAN", "ADMIN")
-                // Fallback: any other request must be authenticated (though specific roles are better)
+                // Allow all authenticated users (MEMBER, LIBRARIAN, ADMIN) to view their own borrows and borrowing history
+                .requestMatchers(HttpMethod.GET, "/api/borrows/**").hasAnyRole("MEMBER", "LIBRARIAN", "ADMIN")
+                // Allow users to create borrow requests and return books
+                .requestMatchers(HttpMethod.POST, "/api/borrows").hasAnyRole("MEMBER", "LIBRARIAN", "ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/borrows/*/return").hasAnyRole("MEMBER", "LIBRARIAN", "ADMIN")
+                // Allow users to cancel their own borrows
+                .requestMatchers(HttpMethod.POST, "/api/borrows/*/cancel").hasAnyRole("MEMBER", "LIBRARIAN", "ADMIN")
+                // Allow librarians/admins to view all borrowing history and overdue reports
+                .requestMatchers(HttpMethod.GET, "/api/borrows/history/**").hasAnyRole("LIBRARIAN", "ADMIN")
+                .requestMatchers(HttpMethod.GET, "/api/borrows/overdue").hasAnyRole("LIBRARIAN", "ADMIN")
+                // Fallback: any other request must be authenticated
                 .anyRequest().authenticated()
             );
 
