@@ -1,0 +1,36 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:testdb;DB_CLOSE_DELAY=-1
+    driverClassName: org.h2.Driver
+    username: sa
+    password: ""
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop # Creates schema on startup, drops on shutdown for tests
+    show-sql: true
+  # Disable Eureka client for tests if not connecting to a Eureka server
+  eureka:
+    client:
+      enabled: false
+  # If BookSagaListener is active and requires Kafka, you might need to:
+  # 1. Configure embedded Kafka for tests
+  # 2. Mock Kafka related beans in your test context
+  # 3. Conditionally disable the BookSagaListener component for tests
+  # For a simple contextLoads, often disabling or mocking is easiest if Kafka isn't central to the test.
+  # Example: To disable listener via property (requires listener to be conditional)
+  # app:
+  #   kafka:
+  #     listener:
+  #       enabled: false
+  # Or provide minimal Kafka config if your app expects it:
+  kafka:
+    bootstrap-servers: localhost:9092 # Dummy value if not actually connecting
+    consumer:
+      group-id: test-book-service-group
+      auto-offset-reset: earliest
+    # producer: # if needed
+
+api:
+  gateway:
+    secret: "M3lT#9fGz!8qP@Z^rKw!5xL7e2Bj&T0v" # Test secret
