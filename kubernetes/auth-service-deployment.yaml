@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: C:\ProgramData\chocolatey\lib\kubernetes-kompose\tools\kompose.exe convert
+    kompose.version: 1.35.0 (9532ceef3)
+  labels:
+    io.kompose.service: auth-service
+  name: auth-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: auth-service
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: C:\ProgramData\chocolatey\lib\kubernetes-kompose\tools\kompose.exe convert
+        kompose.version: 1.35.0 (9532ceef3)
+      labels:
+        io.kompose.service: auth-service
+    spec:
+      containers:
+        - env:
+            - name: EUREKA_URL
+              value: http://discovery-service:8761/eureka
+            - name: KEYCLOAK_URL
+              value: http://keycloak:8080
+            - name: SPRING_PROFILES_ACTIVE
+              value: docker
+          image: auth-service
+          name: auth-service
+      restartPolicy: Always

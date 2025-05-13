@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: C:\ProgramData\chocolatey\lib\kubernetes-kompose\tools\kompose.exe convert
+    kompose.version: 1.35.0 (9532ceef3)
+  labels:
+    io.kompose.service: borrow-postgres
+  name: borrow-postgres
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: borrow-postgres
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: C:\ProgramData\chocolatey\lib\kubernetes-kompose\tools\kompose.exe convert
+        kompose.version: 1.35.0 (9532ceef3)
+      labels:
+        io.kompose.service: borrow-postgres
+    spec:
+      containers:
+        - env:
+            - name: POSTGRES_DB
+              value: borrowdb
+            - name: POSTGRES_PASSWORD
+              value: borrowpass
+            - name: POSTGRES_USER
+              value: borrow_service_user
+          image: postgres:15
+          name: borrow-postgres
+          ports:
+            - containerPort: 5432
+              protocol: TCP
+          volumeMounts:
+            - mountPath: /var/lib/postgresql/data
+              name: borrow-postgres-data
+      restartPolicy: Always
+      volumes:
+        - name: borrow-postgres-data
+          persistentVolumeClaim:
+            claimName: borrow-postgres-data
