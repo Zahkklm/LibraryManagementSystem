@@ -28,6 +28,6 @@ spec:
               value: http://keycloak:8080
             - name: SPRING_PROFILES_ACTIVE
               value: docker
-          image: auth-service
+          image: localhost:49990/auth-service:latest
           name: auth-service
       restartPolicy: Always

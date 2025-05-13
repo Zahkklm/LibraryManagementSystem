@@ -21,7 +21,7 @@ spec:
         io.kompose.service: discovery-service
     spec:
       containers:
-        - image: discovery-service
+        - image: localhost:49990/discovery-service:latest
           name: discovery-service
           ports:
             - containerPort: 8761

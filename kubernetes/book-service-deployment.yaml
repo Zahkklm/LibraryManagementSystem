@@ -32,6 +32,6 @@ spec:
               value: book_service_user
             - name: SPRING_JPA_HIBERNATE_DDL_AUTO
               value: update
-          image: book-service
+          image:  localhost:49990/book-service:latest
           name: book-service
       restartPolicy: Always

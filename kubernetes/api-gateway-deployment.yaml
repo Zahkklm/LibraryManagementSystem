@@ -28,7 +28,7 @@ spec:
               value: http://keycloak:8080
             - name: SPRING_PROFILES_ACTIVE
               value: docker
-          image: api-gateway
+          image: localhost:49990/api-gateway:latest
           name: api-gateway
           ports:
             - containerPort: 8080

@@ -32,6 +32,6 @@ spec:
               value: user_service
             - name: SPRING_PROFILES_ACTIVE
               value: docker
-          image: user-service
+          image: localhost:49990/user-service:latest
           name: user-service
       restartPolicy: Always

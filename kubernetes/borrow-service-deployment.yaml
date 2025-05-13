@@ -30,6 +30,6 @@ spec:
               value: jdbc:postgresql://borrow-postgres:5432/borrowdb
             - name: SPRING_DATASOURCE_USERNAME
               value: borrow_service_user
-          image: borrow-service
+          image: localhost:49990/borrow-service:latest
           name: borrow-service
       restartPolicy: Always
