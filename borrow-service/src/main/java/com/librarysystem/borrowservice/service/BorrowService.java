@@ -15,6 +15,9 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.util.*;
 
+/**
+ * Service class for handling borrow-related business logic.
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -23,16 +26,25 @@ public class BorrowService {
     private final BorrowRepository borrowRepository;
     private final KafkaTemplate<String, Object> kafkaTemplate;
 
+    /**
+     * Helper to get the current authentication object from the security context.
+     */
     private Authentication getAuth() {
         return SecurityContextHolder.getContext().getAuthentication();
     }
 
+    /**
+     * Helper to get the current user's ID from the authentication principal.
+     */
     private String getCurrentUserId() {
         Authentication auth = getAuth();
         if (auth == null || auth.getPrincipal() == null) return null;
         return auth.getPrincipal().toString();
     }
 
+    /**
+     * Helper to check if the current user has a specific role.
+     */
     private boolean hasRole(String role) {
         Authentication auth = getAuth();
         return auth != null && auth.getAuthorities().stream()
@@ -40,6 +52,10 @@ public class BorrowService {
                 .anyMatch(a -> a.equals("ROLE_" + role));
     }
 
+    /**
+     * Handles the logic for borrowing a book.
+     * Checks user permissions, creates a borrow record, and sends a Kafka event.
+     */
     public ResponseEntity<String> borrowBook(Long bookId, String userId) {
         log.info("POST borrowBook called for " + userId);
 
@@ -57,6 +73,7 @@ public class BorrowService {
         Borrow borrow = new Borrow(borrowId, userId, bookId, "PENDING", null, dueDate);
         borrowRepository.save(borrow);
 
+        // Send event to Kafka for book reservation
         kafkaTemplate.send("book-reserve-requested", Map.of(
                 "borrowId", borrowId,
                 "bookId", bookId,
@@ -65,6 +82,10 @@ public class BorrowService {
         return ResponseEntity.ok("Borrow request submitted: " + borrowId);
     }
 
+    /**
+     * Handles the logic for canceling a borrow request.
+     * Checks permissions, updates borrow status, and sends a Kafka event if needed.
+     */
     public ResponseEntity<String> cancelBorrow(String borrowId) {
         String currentUserId = getCurrentUserId();
         if (currentUserId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
@@ -77,6 +98,7 @@ public class BorrowService {
             if ("RESERVED".equals(borrow.getStatus())) {
                 borrow.setStatus("CANCELLED");
                 borrowRepository.save(borrow);
+                // Send compensation event to Kafka
                 kafkaTemplate.send("book-reservation-cancelled", Map.of(
                         "borrowId", borrowId,
                         "bookId", borrow.getBookId()
@@ -88,6 +110,10 @@ public class BorrowService {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * Handles the logic for returning a borrowed book.
+     * Checks permissions, updates borrow status, and sends a Kafka event.
+     */
     public ResponseEntity<String> returnBook(String borrowId) {
         String currentUserId = getCurrentUserId();
         if (currentUserId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Unauthorized");
@@ -101,6 +127,7 @@ public class BorrowService {
                 borrow.setStatus("RETURNED");
                 borrow.setReturnDate(LocalDate.now());
                 borrowRepository.save(borrow);
+                // Send event to Kafka for book return
                 kafkaTemplate.send("book-returned", Map.of(
                         "borrowId", borrowId,
                         "bookId", borrow.getBookId()
@@ -112,6 +139,10 @@ public class BorrowService {
         }).orElse(ResponseEntity.notFound().build());
     }
 
+    /**
+     * Retrieves a specific borrow record.
+     * Only privileged users or the owner can access the record.
+     */
     public ResponseEntity<Borrow> getBorrow(String borrowId) {
         String currentUserId = getCurrentUserId();
         if (currentUserId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -128,6 +159,10 @@ public class BorrowService {
                 .orElse(ResponseEntity.<Borrow>notFound().build());
     }
 
+    /**
+     * Retrieves borrowing history for a user.
+     * Privileged users can specify any user; others get their own history.
+     */
     public ResponseEntity<List<Borrow>> getUserHistory(String userIdParam) {
         String currentUserId = getCurrentUserId();
         if (currentUserId == null) return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
@@ -138,6 +173,10 @@ public class BorrowService {
         return ResponseEntity.ok(borrows);
     }
 
+    /**
+     * Retrieves borrowing history for all users.
+     * Only accessible by privileged users.
+     */
     public ResponseEntity<List<Borrow>> getAllHistory() {
         if (hasRole("LIBRARIAN") || hasRole("ADMIN")) {
             return ResponseEntity.ok(borrowRepository.findAll());
@@ -145,6 +184,10 @@ public class BorrowService {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
     }
 
+    /**
+     * Retrieves all overdue borrows (not returned and past due date).
+     * Only accessible by privileged users.
+     */
     public ResponseEntity<List<Borrow>> getOverdueBorrows() {
         if (hasRole("LIBRARIAN") || hasRole("ADMIN")) {
             LocalDate today = LocalDate.now();
