@@ -2,7 +2,7 @@ spring:
   application:
     name: borrow-service
   datasource:
-    url: jdbc:postgresql://borrow-postgres:5432/borrowdb
+    url: jdbc:postgresql://borrow-postgres:5433/borrowdb
     username: borrow_service_user
     password: borrowpass
   jpa:
