@@ -4,12 +4,17 @@ server:
 spring:
   application:
     name: book-service
+  sql:
+    init:
+      mode: always
+      platform: postgresql
   datasource:
     url: jdbc:postgresql://book-postgres:5435/bookdb
     username: book_service_user
     password: bookpass
     driver-class-name: org.postgresql.Driver
   jpa:
+    defer-datasource-initialization: true
     hibernate:
       ddl-auto: update # Or validate in prod, none if using Flyway/Liquibase
     properties:
