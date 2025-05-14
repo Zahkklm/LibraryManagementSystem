@@ -39,3 +39,11 @@ logging:
   level:
     com.librarysystem.userservice: DEBUG
     org.springframework.web: DEBUG
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api/users/v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /api/users/swagger-ui.html

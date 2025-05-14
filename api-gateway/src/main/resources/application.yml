@@ -10,7 +10,7 @@ spring:
     gateway:
       secret: M3lT#9fGz!8qP@Z^rKw!5xL7e2Bj&T0v
       default-filters:
-      - AddUserHeaders
+        - AddUserHeaders
       discovery:
         locator:
           enabled: true
@@ -19,36 +19,54 @@ spring:
         - id: auth-service
           uri: lb://auth-service
           predicates:
-            - Path=/api/auth/**
-          filters:
-            - StripPrefix=0           
-            - AddRequestHeader=X-Gateway-Secret, M3lT#9fGz!8qP@Z^rKw!5xL7e2Bj&T0v
-        - id: user-service
-          uri: lb://user-service
-          predicates:
-            - Path=/api/users/**
+            - Path=/api/auth/**, /api/auth/v3/api-docs
           filters:
             - StripPrefix=0
             - AddRequestHeader=X-Gateway-Secret, M3lT#9fGz!8qP@Z^rKw!5xL7e2Bj&T0v
+
+        - id: user-service
+          uri: lb://user-service
+          predicates:
+            - Path=/api/users/**, /api/users/v3/api-docs
+          filters:
+            - StripPrefix=0
+            - AddRequestHeader=X-Gateway-Secret, M3lT#9fGz!8qP@Z^rKw!5xL7e2Bj&T0v
+
         - id: book-service
           uri: lb://book-service
           predicates:
-            - Path=/api/books/**
+            - Path=/api/books/**, /api/books/v3/api-docs
           filters:
+            - StripPrefix=0
             - AddRequestHeader=X-Gateway-Secret, M3lT#9fGz!8qP@Z^rKw!5xL7e2Bj&T0v
+
         - id: borrow-service
           uri: lb://borrow-service
           predicates:
-            - Path=/api/borrows/**
+            - Path=/api/borrows/**, /api/borrows/v3/api-docs
           filters:
+            - StripPrefix=0
             - AddRequestHeader=X-Gateway-Secret, M3lT#9fGz!8qP@Z^rKw!5xL7e2Bj&T0v
-  
+
   security:
     oauth2:
       resourceserver:
         jwt:
           issuer-uri: ${KEYCLOAK_URL}/realms/library
           jwk-set-uri: ${KEYCLOAK_URL}/realms/library/protocol/openid-connect/certs
+
+springdoc:
+  swagger-ui:
+    enabled: true
+    urls:
+      - name: auth-service
+        url: /api/auth/v3/api-docs
+      - name: user-service
+        url: /api/users/v3/api-docs
+      - name: book-service
+        url: /api/books/v3/api-docs
+      - name: borrow-service
+        url: /api/borrows/v3/api-docs
 
 eureka:
   client:
@@ -60,7 +78,7 @@ eureka:
       prefer-ip-address: true
 
 user-service:
-  url: lb://user-service 
+  url: lb://user-service
 
 keycloak:
   auth-server-url: ${KEYCLOAK_URL:http://localhost:8080}

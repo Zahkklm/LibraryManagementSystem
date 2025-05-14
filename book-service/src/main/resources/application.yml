@@ -45,3 +45,11 @@ logging:
     org.springframework.web: INFO
     org.hibernate.SQL: DEBUG
     org.hibernate.type.descriptor.sql: TRACE
+
+springdoc:
+  api-docs:
+    enabled: true
+    path: /api/books/v3/api-docs
+  swagger-ui:
+    enabled: true
+    path: /api/books/swagger-ui.html

@@ -2,6 +2,7 @@ package com.librarysystem.borrowservice.controller;
 
 import com.librarysystem.borrowservice.entity.Borrow;
 import com.librarysystem.borrowservice.service.BorrowService;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
@@ -14,6 +15,7 @@ import java.util.List;
  * User ID and roles are extracted from the Spring Security context (populated by RoleExtractionFilter).
  * Now supports UUID user IDs from Keycloak.
  */
+@Tag(name = "Borrow Management", description = "Endpoints for borrowing operations")
 @RestController
 @RequestMapping("/api/borrows")
 @RequiredArgsConstructor

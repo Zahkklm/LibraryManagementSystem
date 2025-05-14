@@ -64,6 +64,11 @@ public class SecurityConfig {
             .addFilterAfter(roleExtractionFilter, GatewayValidationFilter.class)
             .authorizeHttpRequests(authorize -> authorize
                 // Define access rules based on roles.
+                // Allow Swagger OpenAPI paths
+                .requestMatchers(
+                    "/api/books/swagger-ui/**", "/api/books/swagger-ui.html", "/api/books/v3/api-docs/**",
+                    "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**"
+                ).permitAll()
                 // Example: Allow all authenticated users (any role from gateway) to GET books
                 .requestMatchers(HttpMethod.GET, "/api/books/**").hasAnyRole("MEMBER", "LIBRARIAN", "ADMIN")
                 // Example: Allow LIBRARIAN or ADMIN to POST, PUT, DELETE books

@@ -59,6 +59,19 @@ public class SecurityConfig {
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .authorizeExchange(exchanges -> exchanges
+                        // Allow Swagger UI access through gateway
+                        .pathMatchers(
+                            "/api/*/swagger-ui/**", 
+                            "/api/*/swagger-ui.html", 
+                            "/api/*/v3/api-docs/**",
+                            "/*/swagger-ui/**",
+                            "/*/swagger-ui.html",
+                            "/*/v3/api-docs/**",
+                            "/swagger-ui/**",
+                            "/swagger-ui.html",
+                            "/v3/api-docs/**"
+                        ).permitAll()
+
                         // Allow public access to auth endpoints
                         .pathMatchers(HttpMethod.POST, "/api/auth/login").permitAll() 
                         .pathMatchers("/api/auth/**").permitAll() 

@@ -47,6 +47,9 @@ public class SecurityConfig {
             .addFilterBefore(gatewayValidationFilter, UsernamePasswordAuthenticationFilter.class)
             .addFilterAfter(roleExtractionFilter, GatewayValidationFilter.class)
             .authorizeHttpRequests(authorize -> authorize
+                // Allow Swagger UI and API docs without authentication
+                .requestMatchers("/api/borrows/swagger-ui/**", "/api/borrows/swagger-ui.html", "/api/borrows/v3/api-docs/**"
+                        ,"/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                 // Allow all authenticated users (MEMBER, LIBRARIAN, ADMIN) to view their own borrows and borrowing history
                 .requestMatchers(HttpMethod.GET, "/api/borrows/**").hasAnyRole("MEMBER", "LIBRARIAN", "ADMIN")
                 // Allow users to create borrow requests and return books

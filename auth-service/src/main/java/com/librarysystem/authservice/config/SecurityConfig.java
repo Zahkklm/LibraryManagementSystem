@@ -47,6 +47,10 @@ public class SecurityConfig {
             .addFilterBefore(gatewayValidationFilter, UsernamePasswordAuthenticationFilter.class)
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers(
+                    "/api/auth/swagger-ui/**", "/api/auth/swagger-ui.html", "/api/auth/v3/api-docs/**",
+                    "/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**"
+                ).permitAll()
                 .anyRequest().authenticated()
             );
 
