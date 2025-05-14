@@ -3,6 +3,54 @@
 A scalable, microservices-based Library Management System for managing books, users, borrows, and more. Built with modern Java, Spring Boot, Spring Cloud, Keycloak for identity management, and Docker for containerization.
 
 ---
+## Saga Pattern Sequence Diagram
+```mermaid
+sequenceDiagram
+    participant Client
+    participant API_Gateway
+    participant Borrow_Service
+    participant Book_Service
+    participant Kafka
+    participant Notification_Service
+
+    Client->>API_Gateway: POST /api/borrows (with JWT)
+    API_Gateway->>Borrow_Service: Forward request (with X-User-Id)
+    
+    alt Successful Validation
+        Borrow_Service->>Kafka: Publish "BorrowRequested" (bookId, userId)
+        Book_Service->>Kafka: Consume "BorrowRequested"
+        
+        alt Book Available
+            Book_Service->>Book_Service: Mark book as reserved
+            Book_Service->>Kafka: Publish "BookReserved" (success)
+            
+            Borrow_Service->>Kafka: Consume "BookReserved"
+            Borrow_Service->>Borrow_Service: Create borrow record
+            Borrow_Service->>Kafka: Publish "BorrowCompleted"
+            
+            Notification_Service->>Kafka: Consume all events
+            Notification_Service->>Notification_Service: Store notifications
+            Notification_Service->>Client: SSE Stream: "Book borrowed successfully"
+            
+            Borrow_Service->>API_Gateway: 201 Created
+            API_Gateway->>Client: 201 Created
+            
+        else Book Unavailable
+            Book_Service->>Kafka: Publish "BookReserveFailed"
+            Borrow_Service->>Kafka: Consume "BookReserveFailed"
+            Borrow_Service->>API_Gateway: 409 Conflict
+            API_Gateway->>Client: 409 Conflict
+            Notification_Service->>Kafka: Consume "BookReserveFailed"
+            Notification_Service->>Client: SSE Stream: "Book unavailable"
+        end
+        
+    else Validation Failed
+        Borrow_Service->>API_Gateway: 400 Bad Request
+        API_Gateway->>Client: 400 Bad Request
+    end
+```
+
+---
 
 ## Architecture Overview
 
