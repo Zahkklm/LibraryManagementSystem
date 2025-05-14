@@ -41,6 +41,20 @@ services:
     ports:
       - 5433:5432
     networks:
+      - library-network  
+    
+  # Notification Service DB
+  notification-postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: notificationdb
+      POSTGRES_USER: notification_user
+      POSTGRES_PASSWORD: notificationpass
+    volumes:
+      - notification_postgres_data:/var/lib/postgresql/data
+    ports:
+      - 5438:5432
+    networks:
       - library-network
 
   # Keycloak DB
@@ -215,6 +229,22 @@ services:
     networks:
       - library-network
 
+  # Notification Service
+  notification-service:
+    build: notification-service
+    environment:
+      - SPRING_R2DBC_URL=r2dbc:postgresql://notification-postgres:5432/notificationdb
+      - SPRING_R2DBC_USERNAME=notification_user
+      - SPRING_R2DBC_PASSWORD=notificationpass
+      - EUREKA_CLIENT_SERVICEURL_DEFAULTZONE=http://discovery-service:8761/eureka/
+      - SPRING_KAFKA_BOOTSTRAP_SERVERS=kafka:9092
+    depends_on:
+      - notification-postgres
+      - discovery-service
+      - kafka
+    networks:
+      - library-network
+
 volumes:
   user_postgres_data:
   book_postgres_data:
@@ -222,6 +252,7 @@ volumes:
   borrow_postgres_data:
   keycloak_postgres_data:
   pgadmin_data:
+  notification_postgres_data:
 
 networks:
   library-network:
