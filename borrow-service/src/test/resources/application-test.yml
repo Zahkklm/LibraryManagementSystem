@@ -1,0 +1,46 @@
+spring:
+  application:
+    name: borrow-service-test
+  datasource:
+    url: jdbc:h2:mem:borrowdb;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: 
+    driverClassName: org.h2.Driver
+  jpa:
+    database-platform: org.hibernate.dialect.H2Dialect
+    hibernate:
+      ddl-auto: create-drop # Automatically create-drop schema for tests
+    show-sql: true # Good for debugging SQL in tests
+    defer-datasource-initialization: true # If using schema.sql or data.sql alongside ddl-auto
+
+  # Kafka configuration for tests
+  # For simple context loading tests, these allow KafkaTemplate to be created.
+  # For integration tests requiring Kafka, consider using @EmbeddedKafka
+  # which might override these or provide its own broker list.
+  kafka:
+    bootstrap-servers: localhost:9092 # Placeholder, test might fail if it tries to connect and no broker is up
+                                     # For @SpringBootTest without @EmbeddedKafka, this might be an issue.
+                                     # Consider using a specific test profile with @EmbeddedKafka for integration tests.
+    consumer:
+      group-id: borrow-service-test-group
+      auto-offset-reset: earliest
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      # Assuming messages sent by KafkaTemplate<String, Object> are intended as JSON
+      value-serializer: org.springframework.kafka.support.serializer.JsonSerializer
+      properties:
+        spring.json.add.type.headers: false # Disable type headers for broader compatibility if consumers don't expect them
+
+# Server port 0 will pick a random available port, useful for parallel tests
+server:
+  port: 0
+
+# Logging levels for tests
+logging:
+  level:
+    org.hibernate.SQL: DEBUG
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
+    com.librarysystem.borrowservice: DEBUG # Set your application's base package to DEBUG for more test output
+
+# Disable Spring Cloud discovery client for tests if not needed and to speed up context loading
+# spring.cloud.discovery.enabled: false # Uncomment if you use Spring Cloud Discovery and want to disable it for tests
