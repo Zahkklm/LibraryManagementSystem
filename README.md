@@ -38,7 +38,11 @@ This project is a **microservices-based Library Management System** designed for
   - See [borrow-service/README.md](borrow-service/README.md).
 
 - **Notification Service:**  
-  - (Planned) Will handle user notifications via Kafka/WebSocket.
+  - Provides real-time notifications via Server-Sent Events (SSE).
+  - Reactive implementation with WebFlux and R2DBC for non-blocking operations.
+  - Consumes Kafka events from book and borrow services (observer pattern).
+  - Maintains user-specific notification streams with event sinks.
+  - See [notification-service/README.md](notification-service/README.md).
 
 - **Keycloak:**  
   - Identity provider for authentication and authorization.
@@ -52,6 +56,7 @@ This project is a **microservices-based Library Management System** designed for
 
 - **PostgreSQL:**  
   - Each service uses its own schema or DB for data isolation.
+  - Notification service uses R2DBC for reactive database access.
 
 - **Docker Compose:**  
   - Orchestrates all services, databases, and infrastructure for local development.
@@ -68,7 +73,7 @@ This project is a **microservices-based Library Management System** designed for
 | User Service           | User CRUD, roles, credential validation, Keycloak sync      | Spring Boot, Spring MVC, JPA, Keycloak Admin  | 8082 | users    | /api/users/**        |
 | Book Service           | Book CRUD, search, inventory                                | Spring Boot (MVC/JPA), Spring Security        | 8081 | books    | /api/books/**        |
 | Borrow Service         | Borrow/return logic, fines                                  | Spring Boot, Spring MVC, JPA                  | 8083 | borrows  | /api/borrows/**      |
-| Notification Service   | User notifications (Planned)                                | Spring Boot, Kafka, WebSocket                 | 8086 | -        | /api/notifications/**|
+| Notification Service   | Real-time user notifications                                | Spring WebFlux, R2DBC, Kafka, SSE            | 8086 | notifications | /api/notifications/**|
 
 ---
 
@@ -79,6 +84,9 @@ This project is a **microservices-based Library Management System** designed for
 - **Role-Based Access Control:** Fine-grained access via Spring Security and custom annotations (e.g., `@AdminOnly`).
 - **Schema-per-Service:** Each service uses its own PostgreSQL schema for data isolation.
 - **Service Discovery:** Eureka enables dynamic routing and scaling.
+- **Event-Driven Architecture:** Kafka-based event choreography using the SAGA pattern for distributed transactions.
+- **Real-Time Notifications:** Server-Sent Events (SSE) with reactive processing for instant user notifications.
+- **Reactive Programming:** WebFlux and R2DBC for non-blocking I/O in the notification service.
 - **Containerized Development:** All services, Keycloak, and PostgreSQL run in Docker containers for easy setup.
 
 ---
@@ -96,14 +104,31 @@ This project is a **microservices-based Library Management System** designed for
    - API Gateway validates JWT, extracts user info, adds user headers and `X-Gateway-Secret`, and routes to downstream service.
    - Downstream service validates `X-Gateway-Secret`, extracts roles, and authorizes via Spring Security.
 
+3. **Receiving Notifications:**
+   - Client establishes SSE connection to `/api/notifications/stream/{userId}`.
+   - API Gateway routes to Notification Service.
+   - Notification Service creates and maintains user-specific event sink.
+   - When events occur (book borrowed, returned, etc.), notifications are pushed in real-time.
+
 ---
 
 ## Technology Stack
 
-- **Backend:** Java 21, Spring Boot 3.x, Spring Cloud (Gateway, Eureka)
+- **Backend:** 
+  - Java 21
+  - Spring Boot 3.x
+  - Spring Cloud (Gateway, Eureka)
+  - Spring WebFlux (Reactive stack)
+  - Project Reactor
 - **Identity:** Keycloak 24.0
-- **Database:** PostgreSQL (schema-per-service)
-- **Inter-service:** REST (Spring MVC, Feign)
+- **Database:** 
+  - PostgreSQL (schema-per-service)
+  - R2DBC for reactive database access
+- **Messaging:** Apache Kafka
+- **Inter-service:** 
+  - REST (Spring MVC, Feign)
+  - Event-driven (Kafka)
+- **Realtime:** Server-Sent Events (SSE)
 - **Build:** Maven
 - **Containerization:** Docker, Docker Compose
 
@@ -122,7 +147,7 @@ This project is a **microservices-based Library Management System** designed for
 
 ---
 
-## Getting Started
+## Build
 
 ### 1. Clone the Repository
 
@@ -131,72 +156,7 @@ git clone https://github.com/Zahkklm/LibraryManagementSystem.git
 cd LibraryManagementSystem
 ```
 
-### 2. Build & Start All Services
-
+### 2. Run Docker Compose
 ```bash
-docker-compose up --build
+docker-compose up -d --build
 ```
-
-### 3. Access Points
-
-- **API Gateway:** [http://localhost:8080](http://localhost:8080)
-- **Eureka Dashboard:** [http://localhost:8761](http://localhost:8761)
-- **Keycloak Admin:** [http://localhost:8090](http://localhost:8090)
-  - Credentials: `admin` / `admin`
-  - Realm: `library`
-- **PgAdmin:** [http://localhost:5050](http://localhost:5050)
-  - Credentials: `admin@example.com` / `adminadmin123`
-  - DB Host: `postgres`, Port: `5432`, User: `admin`, Pass: `adminadmin`
-
----
-
-## Project Structure
-
-```
-.
-├── discovery-service       # Eureka service discovery
-├── api-gateway            # Spring Cloud API Gateway
-├── auth-service           # Authentication orchestration
-├── user-service           # User management
-├── book-service           # Book management
-├── borrow-service         # Borrowing management
-├── notification-service   # (Planned) Notifications
-├── docker-compose.yml     # Docker orchestration
-├── README.md              # This file
-├── LowLevelDesign.png     # Architecture diagram
-├── keycloak/import/realm-export.json # Keycloak realm config
-└── init.sql               # PostgreSQL schema/init script
-```
-
----
-
-## Considerations & Tradeoffs
-
-- **Resource Usage:** Multiple JVMs, Keycloak, and PostgreSQL require significant resources for local dev.
-- **Complexity:** Microservices add complexity in communication, transactions, and debugging.
-- **Database:** Schema-per-service is used for isolation; consider dedicated DBs for production.
-- **Inter-service Communication:** Synchronous REST (Feign) for now; consider async (Kafka, RabbitMQ) for resilience.
-- **Gateway Dependencies:** Review if `keycloak-admin-client` is needed in API Gateway.
-- **Version Alignment:** Standardize Spring Boot/Cloud versions across services.
-
----
-
-## Future Enhancements
-
-- Expand borrowing logic and fines in `borrow-service`.
-- Introduce distributed transactions (`saga-service`).
-- Add notifications (`notification-service`).
-- Implement circuit breakers, retries, and distributed tracing/logging.
-- Complete user lifecycle sync with Keycloak.
-- Generate API docs (Springdoc OpenAPI).
-- Expand integration and contract testing.
-- Regularly update dependencies and review security.
-
----
-
-**For more details on each service, see:**
-- [api-gateway/README.md](api-gateway/README.md)
-- [auth-service/README.md](auth-service/README.md)
-- [user-service/README.md](user-service/README.md)
-- [book-service/README.md](book-service/README.md)
-- [borrow-service/README.md](borrow-service/README.md)
