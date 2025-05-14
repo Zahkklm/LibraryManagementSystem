@@ -6,6 +6,9 @@ spring:
     name: api-gateway
   config:
     import: "optional:configserver:"
+  sql:
+    init:
+      mode: always
   cloud:
     gateway:
       secret: M3lT#9fGz!8qP@Z^rKw!5xL7e2Bj&T0v
@@ -48,6 +51,14 @@ spring:
             - StripPrefix=0
             - AddRequestHeader=X-Gateway-Secret, M3lT#9fGz!8qP@Z^rKw!5xL7e2Bj&T0v
 
+        - id: notification-service
+          uri: lb://notification-service
+          predicates:
+            - Path=/api/notifications/**
+          filters:
+            - StripPrefix=0
+            - AddRequestHeader=X-Gateway-Secret, M3lT#9fGz!8qP@Z^rKw!5xL7e2Bj&T0v
+
   security:
     oauth2:
       resourceserver:
@@ -67,6 +78,8 @@ springdoc:
         url: /api/books/v3/api-docs
       - name: borrow-service
         url: /api/borrows/v3/api-docs
+      - name: notification-service
+        url: /api/notifications/v3/api-docs
 
 eureka:
   client:
@@ -90,3 +103,4 @@ keycloak:
 logging:
   level:
     org.springframework.security: DEBUG
+
