@@ -47,6 +47,13 @@ public class CreateBookRequest {
     private String publisher;
 
     /**
+     * <b>Genre of the book.</b><br>
+     * <i>Optional. Maximum 50 characters.</i>
+     */
+    @Size(max = 50, message = "Genre cannot exceed 50 characters")
+    private String genre;
+
+    /**
      * <b>Publication date of the book.</b><br>
      * <i>Optional.</i>
      */

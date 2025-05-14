@@ -45,6 +45,11 @@ public class BookResponse {
     private String publisher;
     
     /**
+     * The literary genre or category of the book (e.g., Fiction, Science Fiction, Mystery).
+     */
+    private String genre;
+    
+    /**
      * The date when the book was published.
      */
     private LocalDate publicationDate;

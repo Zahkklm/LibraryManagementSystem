@@ -44,6 +44,13 @@ public class UpdateBookRequest {
     private String publisher;
 
     /**
+     * Genre of the book.<br>
+     * Optional. If provided, must be at most 50 characters.
+     */
+    @Size(max = 50, message = "Genre must not exceed 50 characters if provided")
+    private String genre;
+
+    /**
      * Publication date of the book.<br>
      * Optional.
      */

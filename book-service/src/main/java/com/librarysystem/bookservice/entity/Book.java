@@ -81,6 +81,14 @@ public class Book {
     private String publisher;
     
     /**
+     * The literary genre or category of the book.
+     * <p>
+     * This field helps in categorizing books based on their content type,
+     * such as Fiction, Non-fiction, Science Fiction, etc.
+     */
+    private String genre;
+    
+    /**
      * The date when the book was published.
      * <p>
      * This field represents the original publication date of the book, not
