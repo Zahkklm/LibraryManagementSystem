@@ -121,9 +121,13 @@ public class AuthService {
             LoginRequest loginRequest = new LoginRequest(request.getEmail(), request.getPassword());
             JwtResponse jwtResponse = this.login(loginRequest).getBody();
 
-            // 3. Return user info and JWT
+            // 3. Return user info, Keycloak UUID and JWT
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(Map.of("user", userDTO, "token", jwtResponse != null ? jwtResponse.getToken() : null));
+                    .body(Map.of(
+                        "user", userDTO, 
+                        "keycloakId", userDTO.getId(),  // Explicitly include the Keycloak UUID
+                        "token", jwtResponse != null ? jwtResponse.getToken() : null
+                    ));
         } catch (FeignException.Conflict e) {
             // Handle conflict if email already exists
             return ResponseEntity.status(HttpStatus.CONFLICT).body("Email already exists");
