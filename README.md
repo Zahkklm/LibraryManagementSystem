@@ -56,6 +56,84 @@ sequenceDiagram
 
 This project is a **microservices-based Library Management System** designed for scalability, modularity, and security. Each domain (users, books, borrows, etc.) is handled by a dedicated service, enabling independent development and deployment.
 
+```mermaid
+%%{init: {'theme': 'forest', 'themeVariables': { 'primaryColor': '#FFD700', 'edgeLabelBackground':'#FFF5EE'}}}%%
+graph TD
+    %% Clients
+    C[Web Client]:::client
+    M[Mobile Client]:::client
+    P[Postman]:::client
+    
+    %% Infrastructure
+    subgraph Docker_Environment["Docker Environment (docker-compose)"]
+        K[Keycloak]:::security
+        E[Eureka]:::discovery
+        Z[Kafka]:::messaging
+        PSQL[(PostgreSQL)]:::database
+        
+        %% Services
+        subgraph Microservices["Microservices Cluster"]
+            AG[API Gateway]:::gateway
+            A[Auth Service]:::auth
+            U[User Service]:::user
+            B[Book Service]:::book
+            BR[Borrow Service]:::borrow
+            N[Notification Service]:::notification
+        end
+    end
+
+    %% Connections
+    %% Clients to Gateway
+    C -->|HTTP/HTTPS| AG
+    M -->|HTTP/HTTPS| AG
+    P -->|API Tests| AG
+    
+    %% Gateway to Services
+    AG -->|/api/auth/*| A
+    AG -->|/api/users/*| U
+    AG -->|/api/books/*| B
+    AG -->|/api/borrows/*| BR
+    AG -->|/api/notifications/*| N
+    
+    %% Service Dependencies
+    A -->|Feign| U
+    A -->|JWT| K
+    U -->|Admin API| K
+    U -->|CRUD| PSQL
+    B -->|Inventory| PSQL
+    BR -->|Borrow Records| PSQL
+    N -->|R2DBC| PSQL
+    
+    %% Event-Driven
+    BR -.->|"BorrowRequested"| Z
+    B -.->|"BookReserved/Failed"| Z
+    BR -.->|"BorrowCompleted"| Z
+    Z -.-> N
+    Z -.-> BR
+    Z -.-> B
+    
+    %% Discovery
+    AG --> E
+    A --> E
+    U --> E
+    B --> E
+    BR --> E
+    N --> E
+    
+    %% Styling
+    classDef client fill:#4CAF50,stroke:#388E3C,color:white
+    classDef discovery fill:#9C27B0,stroke:#7B1FA2,color:white
+    classDef security fill:#F44336,stroke:#D32F2F,color:white
+    classDef messaging fill:#FF9800,stroke:#F57C00
+    classDef database fill:#607D8B,stroke:#455A64,color:white
+    classDef gateway fill:#2196F3,stroke:#1976D2,color:white
+    classDef auth fill:#009688,stroke:#00796B,color:white
+    classDef user fill:#795548,stroke:#5D4037,color:white
+    classDef book fill:#3F51B5,stroke:#303F9F,color:white
+    classDef borrow fill:#FF5722,stroke:#E64A19,color:white
+    classDef notification fill:#00BCD4,stroke:#0097A7,color:white
+```
+
 - **API Gateway:**  
   - The single entry point for all client requests.
   - Handles routing, JWT validation (with Keycloak), user/role header enrichment, and adds `X-Gateway-Secret` for downstream trust.
