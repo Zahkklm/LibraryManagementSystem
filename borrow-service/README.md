@@ -55,7 +55,7 @@
 
 **All cross-service actions (reserve, return) are coordinated via Kafka events using the Saga pattern. Each service updates its own data and publishes events for the next step, ensuring eventual consistency and robust workflow management.**
 
-SAGA Workflow:
+# SAGA Workflow:
 
 ## Book Borrowing Process
 
