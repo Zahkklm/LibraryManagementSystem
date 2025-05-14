@@ -1,0 +1,27 @@
+server:
+  port: 8086
+
+spring:
+  application:
+    name: notification-service
+  r2dbc:
+    url: r2dbc:postgresql://notification-postgres:5432/notificationdb
+    username: notification_user
+    password: notificationpass
+  kafka:
+    bootstrap-servers: kafka:9092
+    consumer:
+      group-id: notification-group
+      auto-offset-reset: earliest
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://discovery-service:8761/eureka/
+  instance:
+    prefer-ip-address: true
+
+logging:
+  level:
+    com.librarysystem.notificationservice: DEBUG
+    org.springframework.r2dbc: INFO
