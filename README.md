@@ -195,6 +195,21 @@ This project is a **microservices-based Library Management System** designed for
 
 ---
 
+## Postman Collection
+
+For API testing, we provide a comprehensive Postman collection containing all endpoints:
+
+1. **Download**: Get the [library_postman_collection.json](library_postman_collection.json) file from the repository
+2. **Import to Postman**:
+   - Open Postman
+   - Click "Import" button
+   - Select the downloaded JSON file
+   - The collection includes folders for:
+     - Authentication (login/register)
+     - Books (CRUD, search)
+     - Borrows (request, return, history)
+     - Users (management)
+
 ## Build
 
 ### 1. Clone the Repository
