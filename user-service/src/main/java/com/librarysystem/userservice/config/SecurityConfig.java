@@ -44,12 +44,16 @@ public class SecurityConfig {
             .addFilterAfter(roleExtractionFilter, GatewayValidationFilter.class)
             .authorizeHttpRequests(auth -> {
                 logger.debug("Configuring authorization rules for HTTP requests");
+                // Allow Swagger UI and API docs without authentication
+                auth
+                .requestMatchers("/api/users/swagger-ui/**", "/api/users/swagger-ui.html", "/api/users/v3/api-docs/**"
+                ,"/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll();
                 auth
                     // Public endpoint for user creation (POST /api/users)
                     .requestMatchers(HttpMethod.POST, "/api/users").permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/users/validate").permitAll();
                 logger.info("Public endpoints configured: POST /api/users, POST /api/users/validate");
-                
+
                 // Secure endpoints with role-based access
                 auth
                     .requestMatchers(HttpMethod.GET, "/api/users/**").hasAnyRole("MEMBER", "LIBRARIAN", "ADMIN")
